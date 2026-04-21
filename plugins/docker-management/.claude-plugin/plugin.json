@@ -1,0 +1,6 @@
+{
+  "name": "docker-management",
+  "version": "1.0.0",
+  "description": "docker-management skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

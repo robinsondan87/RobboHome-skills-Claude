@@ -1,0 +1,6 @@
+{
+  "name": "server-bootstrap",
+  "version": "1.0.0",
+  "description": "server-bootstrap skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

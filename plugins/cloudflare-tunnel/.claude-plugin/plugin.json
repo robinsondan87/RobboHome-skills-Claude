@@ -1,0 +1,6 @@
+{
+  "name": "cloudflare-tunnel",
+  "version": "1.0.0",
+  "description": "cloudflare-tunnel skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

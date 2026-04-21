@@ -1,0 +1,6 @@
+{
+  "name": "ollama",
+  "version": "1.0.0",
+  "description": "ollama skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

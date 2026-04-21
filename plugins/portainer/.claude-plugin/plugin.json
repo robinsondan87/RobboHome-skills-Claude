@@ -1,0 +1,6 @@
+{
+  "name": "portainer",
+  "version": "1.0.0",
+  "description": "portainer skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "register-runner",
+  "version": "1.0.0",
+  "description": "register-runner skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

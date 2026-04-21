@@ -1,0 +1,57 @@
+---
+description: svr002 skill for RobboHome automation.
+---
+
+# Skill: svr002 Server Management
+
+## Access
+- SSH: ssh robbohome-server (key auth + password auth enabled)
+- Local: http://svr002:9090 (Cockpit) / https://cockpit.robbohome.com
+- IP: 192.168.1.17, user: robbohomebot, passwordless sudo
+
+## Key directories
+- ~/data/hello-world/ — hello-world app deployment
+- ~/data/ollama/ — Ollama + Open WebUI stack
+- ~/actions-runner/ — GitHub Actions self-hosted runner
+
+## Running services
+| Service   | Start/stop command                        |
+|-----------|-------------------------------------------|
+| Docker    | sudo systemctl start/stop docker          |
+| Cockpit   | sudo systemctl start/stop cockpit.socket  |
+| Portainer | docker start/stop portainer               |
+| Ollama    | cd ~/data/ollama && docker compose up/down|
+| GH Runner | sudo systemctl start/stop actions.runner.robinsondan87-robbohome-hello-world.robbohome-server |
+
+## Bootstrap script
+~/data/infrastructure/server-bootstrap.sh — run with:
+```bash
+sudo bash server-bootstrap.sh RUNNER_TOKEN robinsondan87/robbohome-hello-world
+```
+Get fresh runner token: gh api repos/robinsondan87/robbohome-hello-world/actions/runners/registration-token --method POST --jq '.token'
+
+## SSH hardening config
+/etc/ssh/sshd_config.d/robbohome-hardening.conf:
+- PasswordAuthentication yes (kept on for internal machines)
+- PermitRootLogin no
+- AllowUsers robbohomebot
+- MaxAuthTries 3
+
+## UFW rules
+- SSH (22): 192.168.0.0/16 and 10.0.0.0/8 only
+- 9090, 9000, 3000, 3001, 11434: open (protected by Cloudflare Zero Trust externally)
+
+## Cockpit proxy config
+/etc/cockpit/cockpit.conf — required for Cloudflare tunnel:
+```ini
+[WebService]
+Origins = https://cockpit.robbohome.com wss://cockpit.robbohome.com
+ProtocolHeader = X-Forwarded-Proto
+AllowUnencrypted = true
+```
+
+## Boot mode
+Headless by default (multi-user.target). To start GNOME:
+```bash
+sudo systemctl start graphical.target
+```

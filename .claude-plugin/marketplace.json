@@ -1,0 +1,24 @@
+{
+  "name": "robbohome-skills",
+  "owner": { "name": "robinsondan87" },
+  "description": "Claude skill library for RobboHome — home server management, iOS dev, Docker, Cloudflare, and more.",
+  "plugins": [
+    { "name": "cicd", "source": "./plugins/cicd" },
+    { "name": "cloudflare", "source": "./plugins/cloudflare" },
+    { "name": "deploy", "source": "./plugins/deploy" },
+    { "name": "gpu", "source": "./plugins/gpu" },
+    { "name": "init-project", "source": "./plugins/init-project" },
+    { "name": "ollama", "source": "./plugins/ollama" },
+    { "name": "portainer", "source": "./plugins/portainer" },
+    { "name": "server-setup", "source": "./plugins/server-setup" },
+    { "name": "svr002", "source": "./plugins/svr002" },
+    { "name": "cloudflare-tunnel", "source": "./plugins/cloudflare-tunnel" },
+    { "name": "deployment-patterns", "source": "./plugins/deployment-patterns" },
+    { "name": "docker-management", "source": "./plugins/docker-management" },
+    { "name": "ios-fastlane", "source": "./plugins/ios-fastlane" },
+    { "name": "ios-sideload", "source": "./plugins/ios-sideload" },
+    { "name": "register-runner", "source": "./plugins/register-runner" },
+    { "name": "server-bootstrap", "source": "./plugins/server-bootstrap" },
+    { "name": "xcode-setup", "source": "./plugins/xcode-setup" }
+  ]
+}

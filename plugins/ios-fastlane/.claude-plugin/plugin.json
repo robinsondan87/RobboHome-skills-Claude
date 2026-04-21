@@ -1,0 +1,6 @@
+{
+  "name": "ios-fastlane",
+  "version": "1.0.0",
+  "description": "ios-fastlane skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

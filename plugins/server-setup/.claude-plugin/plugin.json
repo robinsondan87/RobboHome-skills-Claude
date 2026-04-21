@@ -1,0 +1,6 @@
+{
+  "name": "server-setup",
+  "version": "1.0.0",
+  "description": "server-setup skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}

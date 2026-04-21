@@ -1,0 +1,6 @@
+{
+  "name": "cloudflare",
+  "version": "1.0.0",
+  "description": "cloudflare skill for RobboHome automation.",
+  "author": { "name": "robinsondan87" }
+}
