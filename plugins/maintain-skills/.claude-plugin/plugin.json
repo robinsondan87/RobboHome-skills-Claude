@@ -1,0 +1,6 @@
+{
+  "name": "maintain-skills",
+  "version": "1.0.0",
+  "description": "Create or update skills in RobboHome-skills-Claude so that everything done across sessions is captured and stays current.",
+  "author": { "name": "robinsondan87" }
+}

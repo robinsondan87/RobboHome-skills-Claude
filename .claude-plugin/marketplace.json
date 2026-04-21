@@ -28,6 +28,7 @@
     { "name": "geekythings-business", "source": "./plugins/geekythings-business" },
     { "name": "geekythings-listings", "source": "./plugins/geekythings-listings" },
     { "name": "scc-content", "source": "./plugins/scc-content" },
-    { "name": "william-agent", "source": "./plugins/william-agent" }
+    { "name": "william-agent", "source": "./plugins/william-agent" },
+    { "name": "maintain-skills", "source": "./plugins/maintain-skills" }
   ]
 }
