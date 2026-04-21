@@ -7,6 +7,30 @@ description: openclaw-update skill for RobboHome automation.
 Covers: checking for updates, installing, verifying, backing up config to
 GitHub, and restoring from catastrophic failure.
 
+**IMPORTANT: Always take a local backup before any config change or update.**
+
+---
+
+## Local quick-backup (run before ANY config change or update)
+
+Creates a timestamped snapshot of `~/.openclaw` in `~/backups/openclaw/`.
+Fast, local, no network required. Do this first — every time.
+
+```bash
+STAMP=$(date +%Y%m%d-%H%M%S)
+DEST=~/backups/openclaw/$STAMP
+mkdir -p "$DEST"
+cp ~/.openclaw/openclaw.json "$DEST/" 2>/dev/null || true
+cp ~/.openclaw/secrets.json  "$DEST/" 2>/dev/null || true
+cp ~/.openclaw/cron/jobs.json "$DEST/cron-jobs.json" 2>/dev/null || true
+echo "Local backup saved to $DEST"
+```
+
+To keep only the 10 most recent local backups:
+```bash
+ls -dt ~/backups/openclaw/*/ | tail -n +11 | xargs rm -rf
+```
+
 ---
 
 ## Check current version and available updates
@@ -20,6 +44,8 @@ npm view openclaw dist-tags
 ---
 
 ## Update OpenClaw to latest stable
+
+**Step 0 — local backup first (see above)**
 
 ```bash
 # 1. Install latest via npm (OpenClaw is a global npm package)
@@ -53,6 +79,7 @@ Backs up all essential config, agent identities, workspaces, and credentials
 to the private `robbohome-infrastructure` repo for catastrophic recovery.
 
 **Run after every update, or any time you change agent configs.**
+**Always do the local quick-backup above first — the GitHub backup is the long-term record.**
 
 ```bash
 bash ~/robbohome-infrastructure/openclaw-backup/backup.sh
