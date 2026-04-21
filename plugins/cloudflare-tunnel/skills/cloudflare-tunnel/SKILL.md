@@ -59,13 +59,14 @@ curl -X DELETE "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUN
 ```
 
 ## Current protected apps
-| App | Domain | Access? |
-|-----|--------|---------|
-| Portainer | portainer.robbohome.com | Yes |
-| Cockpit | cockpit.robbohome.com | Yes |
-| Open WebUI | ai.robbohome.com | Yes |
-| Unraid | unraid.robbohome.com | Yes |
-| Gym Coach | gymcoach.robbohome.com | **No** (own auth) |
+| App | Domain | Access? | Notes |
+|-----|--------|---------|-------|
+| Portainer | portainer.robbohome.com | Yes | |
+| Cockpit | cockpit.robbohome.com | Yes | |
+| Open WebUI | ai.robbohome.com | Yes | |
+| Unraid | unraid.robbohome.com | Yes | |
+| Gym Coach | gymcoach.robbohome.com | **No** | App uses own Bearer token auth |
+| GeekyThings | geekythings.robbohome.com | Yes | App ID: `119c16e9-eeab-48af-ba7c-51e970ba1a34`; `/files-token/*` has a bypass app (`45000b6f-89c1-4583-8e10-6c305815a4ac`) |
 
 ## Troubleshooting
 - **502/tunnel error**: Check `cloudflared` is running on svr002 — `ssh robbohomebot@192.168.1.17 'systemctl status cloudflared'`

@@ -1,0 +1,6 @@
+{
+  "name": "deploy-gym",
+  "version": "1.0.0",
+  "description": "Deploy gym-coach to svr002 via CI/CD.",
+  "author": { "name": "robinsondan87" }
+}

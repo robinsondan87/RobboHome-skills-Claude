@@ -1,0 +1,6 @@
+{
+  "name": "william-agent",
+  "version": "1.0.0",
+  "description": "Context and design guide for William's dedicated child-safe OpenClaw agent.",
+  "author": { "name": "robinsondan87" }
+}

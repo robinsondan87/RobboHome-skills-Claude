@@ -67,6 +67,7 @@ gh api repos/robinsondan87/REPO_NAME/actions/runners --jq '.runners[]'
 |------------------|------------------------------------|------------------------------|
 | robbohome-hello-world | ~/actions-runner/           | robbohome-server             |
 | gym-coach        | ~/actions-runner-gym-coach/        | robbohome-server-gym         |
+| GeekyThingsProductCatalogue | ~/actions-runner-geekythings/ | robbohome-server-geekythings |
 
 ## When NOT to set up a runner
 **iOS apps do not use GitHub Actions runners.** They build and deploy locally on the Mac Mini via Fastlane.

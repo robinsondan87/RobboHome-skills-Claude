@@ -59,6 +59,9 @@ All app data is stored under `~/data/` on svr002:
 /home/robbohomebot/data/
 ├── gym-coach/
 │   └── data/gym.db          ← SQLite database
+├── geekythings/
+│   ├── Products/             ← 3MF files (~10GB)
+│   └── db/                  ← PostgreSQL data
 └── <other-apps>/
 ```
 
@@ -66,6 +69,7 @@ All app data is stored under `~/data/` on svr002:
 | Container | Port | Compose file | Public URL |
 |-----------|------|--------------|------------|
 | gym-coach | 3847 | ~/data/gym-coach/docker-compose.prod.yml | gymcoach.robbohome.com |
+| geekythings | 3002 | ~/data/geekythings/docker-compose.prod.yml | geekythings.robbohome.com |
 
 ## Related Skills
 - Setting up a new runner: `skills/register-runner/SKILL.md`

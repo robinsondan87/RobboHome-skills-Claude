@@ -1,0 +1,6 @@
+{
+  "name": "bambu-integration",
+  "version": "1.0.0",
+  "description": "Bambu Studio URL scheme findings — why direct open-in-slicer from a custom domain is not possible.",
+  "author": { "name": "robinsondan87" }
+}

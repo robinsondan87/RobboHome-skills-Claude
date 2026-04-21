@@ -40,7 +40,9 @@ When asked to initialise a new RobboHome project:
 |-------|---------------|
 | 3000  | hello-world   |
 | 3001  | open-webui    |
-| 3002+ | new projects  |
+| 3002  | geekythings   |
+| 3003+ | new projects  |
+| 3847  | gym-coach     |
 | 9000  | portainer     |
 | 9090  | cockpit       |
 | 11434 | ollama        |

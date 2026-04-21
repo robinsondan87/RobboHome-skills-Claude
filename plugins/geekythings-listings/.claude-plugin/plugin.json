@@ -1,0 +1,6 @@
+{
+  "name": "geekythings-listings",
+  "version": "1.0.0",
+  "description": "Create or update GeekyThings product listings via the Product Manager API.",
+  "author": { "name": "robinsondan87" }
+}

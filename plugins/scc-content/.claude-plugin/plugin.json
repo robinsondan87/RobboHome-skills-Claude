@@ -1,0 +1,6 @@
+{
+  "name": "scc-content",
+  "version": "1.0.0",
+  "description": "Stafford Camera Club competition import agent — process OneDrive results and upload to the SCC Wagtail website.",
+  "author": { "name": "robinsondan87" }
+}
