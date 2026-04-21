@@ -19,6 +19,7 @@
     { "name": "ios-sideload", "source": "./plugins/ios-sideload" },
     { "name": "register-runner", "source": "./plugins/register-runner" },
     { "name": "server-bootstrap", "source": "./plugins/server-bootstrap" },
-    { "name": "xcode-setup", "source": "./plugins/xcode-setup" }
+    { "name": "xcode-setup", "source": "./plugins/xcode-setup" },
+    { "name": "openclaw-update", "source": "./plugins/openclaw-update" }
   ]
 }
