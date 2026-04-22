@@ -43,8 +43,37 @@ bash server-bootstrap.sh
 | Hostname | svr002 |
 | IP | 192.168.1.17 |
 | User | robbohomebot |
-| SSH | `ssh robbohomebot@192.168.1.17` |
+| SSH | `ssh svr002` (alias) or `ssh robbohome-server` |
+| Key | `~/.ssh/id_ed25519` (ed25519, comment: github@geekythings.co.uk) |
 | OS | Ubuntu |
+
+## SSH config entry (~/.ssh/config)
+```
+Host svr002 robbohome-server
+  HostName 192.168.1.17
+  User robbohomebot
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
+
+## svr001 / Unraid NAS
+| | |
+|---|---|
+| Hostname | svr001 / unraid |
+| IP | 192.168.1.200 |
+| User | root |
+| Port | 2223 |
+| SSH | `ssh unraid` or `ssh svr001` |
+| Key | `~/.ssh/codex_remote` |
+
+```
+Host unraid svr001
+  HostName 192.168.1.200
+  User root
+  Port 2223
+  IdentityFile ~/.ssh/codex_remote
+  IdentitiesOnly yes
+```
 
 ## Related Skills
 - `skills/register-runner/SKILL.md` — register GitHub Actions runner after bootstrap

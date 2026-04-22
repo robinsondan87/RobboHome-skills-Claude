@@ -8,33 +8,35 @@ Managing Docker containers on svr002 (192.168.1.17).
 
 ## Access
 ```bash
-ssh robbohomebot@192.168.1.17
+ssh svr002
+# or: ssh robbohome-server
 ```
+Key: `~/.ssh/id_ed25519` — configured in `~/.ssh/config` as `svr002 / robbohome-server`.
 
 ## Common commands
 
 ### View all running containers
 ```bash
-ssh robbohomebot@192.168.1.17 'docker ps'
+ssh svr002 'docker ps'
 ```
 
 ### View logs
 ```bash
 # Live tail
-ssh robbohomebot@192.168.1.17 'docker logs <container> -f --tail 50'
+ssh svr002 'docker logs <container> -f --tail 50'
 
 # Last 100 lines
-ssh robbohomebot@192.168.1.17 'docker logs <container> --tail 100'
+ssh svr002 'docker logs <container> --tail 100'
 ```
 
 ### Restart a container
 ```bash
-ssh robbohomebot@192.168.1.17 'docker restart <container>'
+ssh svr002 'docker restart <container>'
 ```
 
 ### Pull latest image and restart (manual deploy)
 ```bash
-ssh robbohomebot@192.168.1.17 '
+ssh svr002 '
   docker pull ghcr.io/robinsondan87/<app>:latest
   cd ~/data/<app>
   docker compose -f docker-compose.prod.yml up -d
@@ -43,9 +45,9 @@ ssh robbohomebot@192.168.1.17 '
 
 ### Disk usage
 ```bash
-ssh robbohomebot@192.168.1.17 'docker system df'
+ssh svr002 'docker system df'
 # Clean up unused images/volumes
-ssh robbohomebot@192.168.1.17 'docker system prune -f'
+ssh svr002 'docker system prune -f'
 ```
 
 ## Portainer (web UI)

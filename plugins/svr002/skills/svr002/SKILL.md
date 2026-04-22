@@ -5,9 +5,19 @@ description: svr002 skill for RobboHome automation.
 # Skill: svr002 Server Management
 
 ## Access
-- SSH: ssh robbohome-server (key auth + password auth enabled)
-- Local: http://svr002:9090 (Cockpit) / https://cockpit.robbohome.com
+- SSH: `ssh svr002` or `ssh robbohome-server` (alias in ~/.ssh/config)
+- Key: `~/.ssh/id_ed25519` (ed25519, comment: github@geekythings.co.uk)
 - IP: 192.168.1.17, user: robbohomebot, passwordless sudo
+- Local: http://192.168.1.17:9090 (Cockpit) / https://cockpit.robbohome.com
+
+## SSH config entry (~/.ssh/config)
+```
+Host svr002 robbohome-server
+  HostName 192.168.1.17
+  User robbohomebot
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
 
 ## Key directories
 - ~/data/hello-world/ — hello-world app deployment
