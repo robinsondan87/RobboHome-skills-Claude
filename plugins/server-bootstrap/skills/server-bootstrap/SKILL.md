@@ -44,7 +44,7 @@ bash server-bootstrap.sh
 | IP | 192.168.1.17 |
 | User | robbohomebot |
 | SSH | `ssh svr002` (alias) or `ssh robbohome-server` |
-| Key | `~/.ssh/id_ed25519` (ed25519, comment: github@geekythings.co.uk) |
+| Key | `~/.ssh/svr002_remote` (ed25519, comment: svr002-remote) |
 | OS | Ubuntu |
 
 ## SSH config entry (~/.ssh/config)
@@ -52,7 +52,7 @@ bash server-bootstrap.sh
 Host svr002 robbohome-server
   HostName 192.168.1.17
   User robbohomebot
-  IdentityFile ~/.ssh/id_ed25519
+  IdentityFile ~/.ssh/svr002_remote
   IdentitiesOnly yes
 ```
 

@@ -6,7 +6,7 @@ description: svr002 skill for RobboHome automation.
 
 ## Access
 - SSH: `ssh svr002` or `ssh robbohome-server` (alias in ~/.ssh/config)
-- Key: `~/.ssh/id_ed25519` (ed25519, comment: github@geekythings.co.uk)
+- Key: `~/.ssh/svr002_remote` (ed25519, comment: svr002-remote)
 - IP: 192.168.1.17, user: robbohomebot, passwordless sudo
 - Local: http://192.168.1.17:9090 (Cockpit) / https://cockpit.robbohome.com
 
@@ -15,7 +15,7 @@ description: svr002 skill for RobboHome automation.
 Host svr002 robbohome-server
   HostName 192.168.1.17
   User robbohomebot
-  IdentityFile ~/.ssh/id_ed25519
+  IdentityFile ~/.ssh/svr002_remote
   IdentitiesOnly yes
 ```
 

@@ -11,7 +11,7 @@ Managing Docker containers on svr002 (192.168.1.17).
 ssh svr002
 # or: ssh robbohome-server
 ```
-Key: `~/.ssh/id_ed25519` — configured in `~/.ssh/config` as `svr002 / robbohome-server`.
+Key: `~/.ssh/svr002_remote` — configured in `~/.ssh/config` as `svr002 / robbohome-server`.
 
 ## Common commands
 
