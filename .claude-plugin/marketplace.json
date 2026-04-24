@@ -24,6 +24,7 @@
     { "name": "server-setup", "source": "./plugins/server-setup" },
     { "name": "svr002", "source": "./plugins/svr002" },
     { "name": "svr003", "source": "./plugins/svr003" },
+    { "name": "home-assistant", "source": "./plugins/home-assistant" },
     { "name": "xcode-setup", "source": "./plugins/xcode-setup" },
     { "name": "bambu-integration", "source": "./plugins/bambu-integration" },
     { "name": "geekythings-business", "source": "./plugins/geekythings-business" },
