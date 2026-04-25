@@ -20,6 +20,7 @@
     { "name": "openclaw-update", "source": "./plugins/openclaw-update" },
     { "name": "portainer", "source": "./plugins/portainer" },
     { "name": "register-runner", "source": "./plugins/register-runner" },
+    { "name": "secrets", "source": "./plugins/secrets" },
     { "name": "server-bootstrap", "source": "./plugins/server-bootstrap" },
     { "name": "server-setup", "source": "./plugins/server-setup" },
     { "name": "svr002", "source": "./plugins/svr002" },
