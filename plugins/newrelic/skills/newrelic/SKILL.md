@@ -1,13 +1,14 @@
 ---
-description: newrelic — New Relic infrastructure agent on Unraid plus account/API key locations.
+description: newrelic — New Relic infrastructure agent on all hosts (Unraid, Ubuntu, Debian arm64, Mac) plus account/API key locations.
 ---
 
 # Skill: New Relic
 
-EU-region account. Infrastructure agent runs as a Docker container on svr001 (Unraid). Slackware is not on New Relic's officially supported OS list, so the host package install isn't an option — `newrelic/infrastructure-bundle` Docker image is the path.
+EU-region account. Infrastructure agents run on all four hosts: svr001, svr002, svr003, dans-macbook-pro.
 
 ## Account & keys
 - **Region**: EU (license key prefix `eu01xx`, agent ships to EU endpoint automatically)
+- **Account ID**: `4304361` (NerdGraph, NRQL, Grafana data source — all use this)
 - **Keys** (svr002:`~/data/config/.secrets`, mode 600):
   - `NEW_RELIC_LICENSE_KEY` — Ingest license key, used by agents (`NRIA_LICENSE_KEY` env var)
   - `NEW_RELIC_USER_API_KEY` — User API key (`NRAK-…`) for REST/NerdGraph queries
@@ -18,8 +19,17 @@ Fetch from any host:
 ssh svr002 "grep ^NEW_RELIC_LICENSE_KEY= ~/data/config/.secrets | cut -d= -f2"
 ```
 
-## Infrastructure agent on Unraid (svr001)
-Container: `newrelic/infrastructure-bundle:latest` — bundle includes the on-host integrations (docker, redis, postgres, etc.) so they auto-discover Unraid's containers.
+## Hosts
+
+| Host | Role tag | Install method |
+|---|---|---|
+| svr001 (Unraid) | `unraid` | Docker container |
+| svr002 (Ubuntu) | `home-server` | apt + systemd |
+| svr003 (Debian Trixie arm64) | `backup-server` | apt + systemd, with `trusted=yes` workaround |
+| Daniels-MBP.lan | `workstation` | Homebrew + launchd |
+
+### svr001 — Unraid (Docker)
+Slackware is not on New Relic's officially supported OS list, so use `newrelic/infrastructure-bundle` (bundle includes on-host integrations: docker, redis, postgres, etc.).
 
 ```bash
 ssh svr001 "docker run -d --name newrelic-infra \
@@ -34,24 +44,73 @@ ssh svr001 "docker run -d --name newrelic-infra \
   newrelic/infrastructure-bundle:latest"
 ```
 
-### Expected (harmless) log warnings on Unraid
-- `unable to initialize containerd client` — Unraid uses Docker, not containerd
-- `failed to connect to DBus` / `no systemd found` — Unraid is sysvinit-based
+Expected (harmless) log warnings: `unable to initialize containerd client` (Unraid uses Docker, not containerd), `failed to connect to DBus` / `no systemd found` (Unraid is sysvinit). Host metrics + Docker container metrics + process samples all work normally despite these.
 
-These do not affect host metrics, Docker container metrics, or process samples — those all work normally.
-
-### Verify reporting
+### svr002 — Ubuntu (apt)
+Standard install via the New Relic apt repo:
 ```bash
-ssh svr001 "docker logs newrelic-infra 2>&1 | grep 'connect got id'"
+ssh svr002 'sudo bash -c "
+  curl -fsSL https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/newrelic-infra.gpg
+  CODENAME=\$(lsb_release -cs)
+  echo \"deb [signed-by=/etc/apt/trusted.gpg.d/newrelic-infra.gpg] https://download.newrelic.com/infrastructure_agent/linux/apt \$CODENAME main\" > /etc/apt/sources.list.d/newrelic-infra.list
+  apt-get update -qq && apt-get install newrelic-infra -y
+"'
 ```
-A line containing `connect got id agent-guid=… agent-id=…` means New Relic has accepted the license and assigned a GUID. Data appears in the UI within ~1–2 min: **one.eu.newrelic.com → Infrastructure → Hosts** (filter by `role=unraid`).
+Then write `/etc/newrelic-infra.yml`:
+```yaml
+license_key: <key>
+display_name: svr002
+custom_attributes:
+  role: home-server
+  environment: home
+```
+And `systemctl restart newrelic-infra`.
 
-## Adding more hosts
-For svr002 / svr003 / Mac, the same image works — change `NRIA_DISPLAY_NAME` and add appropriate `role=` tag. svr002/svr003 run a real systemd, so the DBus warning won't appear there.
+### svr003 — Debian Trixie arm64 (apt with trusted=yes)
+Debian 13 (Trixie) apt rejects New Relic's GPG key because the binding signature uses SHA1 (deprecated in Debian since 2026-02-01). Workaround: use `[trusted=yes]` since the repo is HTTPS-served by a trusted vendor. Also use the `bookworm` codename since `trixie` isn't in NR's apt repo yet.
 
-For non-Docker installs (e.g. svr002 native, Mac), the standard package install is fine since both are on supported OSes (Ubuntu/Debian and macOS).
+```bash
+ssh svr003 'sudo bash -c "
+  echo \"deb [trusted=yes] https://download.newrelic.com/infrastructure_agent/linux/apt bookworm main\" > /etc/apt/sources.list.d/newrelic-infra.list
+  apt-get update -qq && apt-get install newrelic-infra -y
+"'
+```
+Same `/etc/newrelic-infra.yml` pattern as svr002 (`display_name: svr003`, `role: backup-server`).
+
+This works for arm64 — New Relic ships arm64 packages in the same apt repo.
+
+### Mac — Homebrew
+Use the `newrelic-infra-agent` formula (not `newrelic-cli`, that's a different tool):
+```bash
+brew install newrelic-infra-agent
+mkdir -p /opt/homebrew/etc/newrelic-infra
+cat > /opt/homebrew/etc/newrelic-infra/newrelic-infra.yml <<EOF
+license_key: <key>
+display_name: dans-macbook-pro
+custom_attributes:
+  role: workstation
+  environment: home
+EOF
+brew services start newrelic-infra-agent
+```
+Runs as a user-scope launchd service (`~/Library/LaunchAgents/homebrew.mxcl.newrelic-infra-agent.plist`).
+
+## Verify reporting (NerdGraph)
+```bash
+curl -s -X POST https://api.eu.newrelic.com/graphql \
+  -H "API-Key: $(ssh svr002 grep ^NEW_RELIC_USER_API_KEY= ~/data/config/.secrets | cut -d= -f2)" \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"{ actor { account(id: 4304361) { nrql(query: \"SELECT latest(timestamp) FROM SystemSample SINCE 5 minutes ago FACET hostname\") { results } } } }"}'
+```
+A row per `hostname` with a recent `latest(timestamp)` confirms each host is shipping. Default harvest cycle is 5s (≈12 samples/min/host).
+
+## UI
+- one.eu.newrelic.com → **Infrastructure → Hosts**
+- Filter by `role=unraid` / `home-server` / `backup-server` / `workstation`
+- Filter by `environment=home`
 
 ## Related Skills
 - `skills/svr002/SKILL.md` — primary home server, secrets live here
-- `skills/svr003/SKILL.md` — backup server, would benefit from monitoring when remote
+- `skills/svr003/SKILL.md` — backup server (Trixie arm64 — note the GPG workaround)
 - `skills/docker-management/SKILL.md` — for Unraid container operations
+- `skills/grafana/SKILL.md` — Grafana on Unraid uses NR as a data source
