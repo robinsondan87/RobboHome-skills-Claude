@@ -8,9 +8,10 @@ Single source of truth for shared credentials across every machine that runs Rob
 
 ## Architecture in one paragraph
 
-The `robbohome-config` git repo holds two SOPS-encrypted secret stores: `~/data/config/.secrets.env` (dotenv, for shells/skills) and `~/data/config/.secrets.openclaw.json` (JSON, mirrors OpenClaw's `~/.openclaw/secrets.json` shape). Each machine has its own age keypair; each machine's **public** key is listed as a recipient in `.sops.yaml`. Both encrypted files are committed and pushed normally. Two consumers:
+The `robbohome-config` git repo holds three classes of SOPS-encrypted material: `~/data/config/.secrets.env` (dotenv, for shells/skills), `~/data/config/.secrets.openclaw.json` (JSON, mirrors OpenClaw's `~/.openclaw/secrets.json` shape), and `~/data/config/ssh/*.sops` (binary-mode encrypted SSH private keys, currently `id_ed25519.sops`). Each machine has its own age keypair; each machine's **public** key is listed as a recipient in `.sops.yaml`. All encrypted files are committed and pushed normally. Three consumers:
 - Shell skills `source ~/data/config/load-secrets.sh` to get dotenv values into the current shell.
 - OpenClaw is fed by `~/data/config/sync-openclaw.sh` which decrypts the JSON file and atomically rewrites `~/.openclaw/secrets.json`, then runs `openclaw secrets reload`.
+- New / re-provisioned machines run `bash ~/data/config/install-ssh-keys.sh` to deploy the shared `~/.ssh/id_ed25519` after their first decrypt.
 
 ## Key reference
 
@@ -20,13 +21,17 @@ The `robbohome-config` git repo holds two SOPS-encrypted secret stores: `~/data/
 | Local clone path | `~/data/config` |
 | Encrypted dotenv | `~/data/config/.secrets.env` (committed) |
 | Encrypted OpenClaw JSON | `~/data/config/.secrets.openclaw.json` (committed) |
+| Encrypted SSH keys | `~/data/config/ssh/<name>.sops` (committed; rule path_regex `^ssh/.+\.sops$`) |
+| SSH public keys | `~/data/config/ssh/<name>.pub` (committed plain — public keys aren't secret) |
 | Recipient list | `~/data/config/.sops.yaml` (committed) |
 | Shell helper | `~/data/config/load-secrets.sh` (committed) |
 | OpenClaw sync script | `~/data/config/sync-openclaw.sh` (committed) |
+| SSH key install helper | `~/data/config/install-ssh-keys.sh` (committed) |
 | OpenClaw plaintext (derived) | `~/.openclaw/secrets.json` — overwritten by sync, do not hand-edit |
+| Deployed SSH keys (derived) | `~/.ssh/<name>` (mode 600), `~/.ssh/<name>.pub` (mode 644) — written by install-ssh-keys.sh |
 | Age key (per machine) | `~/.config/sops/age/keys.txt` (mode 600, **never committed**) |
 | Env var | `SOPS_AGE_KEY_FILE` — helper + sync set this if unset |
-| Plaintext (legacy/backup) | `~/data/config/.secrets`, `.secrets.bak`, `~/.openclaw/secrets.json.pre-sops-bak` — gitignored, do not commit |
+| Plaintext (legacy/backup) | `~/data/config/.secrets`, `.secrets.bak`, `~/.openclaw/secrets.json.pre-sops-bak`, anything matching `ssh/id_*` that isn't `.pub`/`.sops` — all gitignored |
 
 ## How shell skills use it
 
@@ -54,6 +59,33 @@ On any other machine that runs OpenClaw (currently just the Mac, but the encrypt
 
 **Important:** never hand-edit `~/.openclaw/secrets.json` — the next sync will overwrite it. The encrypted file is the source of truth.
 
+## How shared SSH keys are distributed
+
+The user's "fleet" SSH keypair (currently `id_ed25519`, used to ssh into svr001/svr002/svr003 and to talk to GitHub) lives in SOPS as `ssh/id_ed25519.sops` (binary-mode encrypted) plus the corresponding `ssh/id_ed25519.pub` (plain). After a new machine has its age key and has cloned the repo, run:
+
+```bash
+bash ~/data/config/install-ssh-keys.sh
+```
+
+This decrypts every `ssh/*.sops` file into `~/.ssh/<name>` (mode 600) and copies the matching `.pub` into `~/.ssh/<name>.pub` (mode 644). It overwrites in place — back up any existing identity first if it differs.
+
+**To rotate or add another shared SSH key:**
+```bash
+cd ~/data/config && git pull
+cp /path/to/new/private_key ssh/<name>.sops
+chmod 600 ssh/<name>.sops
+sops --encrypt --input-type binary --output-type binary --in-place ssh/<name>.sops
+cp /path/to/new/public_key ssh/<name>.pub
+git add ssh/<name>.sops ssh/<name>.pub
+git commit -m "feat: add <name> ssh key"
+git push
+```
+
+**Bootstrap caveat:** a brand-new machine doesn't yet have any SSH key authorised for GitHub, so the *first* clone of `robbohome-config` has to use HTTPS — typically `gh auth login` then `git clone https://github.com/...`. After step 6 (verify decrypt) the new machine runs `install-ssh-keys.sh`, then re-points the remote to SSH:
+```bash
+cd ~/data/config && git remote set-url origin git@github.com:robinsondan87/robbohome-config.git
+```
+
 ---
 
 ## Onboarding a new machine
@@ -79,11 +111,17 @@ sudo apt install age
 ```
 
 #### 2. Clone the config repo
+A brand-new machine usually has no SSH key authorised for GitHub yet, so bootstrap-clone over HTTPS. Easiest path on macOS / Debian / Ubuntu:
 ```bash
+brew install gh        # or: sudo apt install gh
+gh auth login          # GitHub.com → HTTPS → web browser flow
 mkdir -p ~/data && cd ~/data
-git clone git@github.com:robinsondan87/robbohome-config.git config
+git clone https://github.com/robinsondan87/robbohome-config.git config
 cd config
 ```
+After step 6 (verify decrypt) you'll run `install-ssh-keys.sh` to deploy the shared key, then re-point the remote to SSH (see the "Day-to-day workflow" section).
+
+If the new machine already has a working SSH identity authorised on GitHub, you can clone via SSH directly (`git clone git@github.com:robinsondan87/robbohome-config.git config`) and skip the gh auth step.
 
 #### 3. Generate this machine's age keypair
 ```bash
@@ -140,6 +178,14 @@ git push
 cd ~/data/config && git pull
 source ~/data/config/load-secrets.sh
 echo "${PORTAINER_USERNAME:-MISSING}"   # should print, not "MISSING"
+```
+
+#### 7. Deploy the shared SSH key (if you bootstrap-cloned over HTTPS)
+```bash
+bash ~/data/config/install-ssh-keys.sh
+cd ~/data/config && git remote set-url origin git@github.com:robinsondan87/robbohome-config.git
+ssh -o StrictHostKeyChecking=accept-new -T git@github.com   # accept GitHub host key
+git pull --ff-only                                            # confirm SSH works
 ```
 
 ---
@@ -320,6 +366,52 @@ If a machine has secrets in scattered `.env` files / `~/.bashrc` exports / docke
   sops exec-env ~/data/config/.secrets.env 'your-script.sh'
   ```
   This runs the command with the env populated, without writing plaintext to disk.
+
+### Consuming on Unraid (svr001) — RAM-based filesystem
+
+Unraid's `/`, `/root`, `/etc`, and `/usr/local/bin` are all in RAM and reset on every boot. The flash drive at `/boot/config/` is the only writable persistent path that's always available; user shares under `/mnt/user/` are persistent but require the array to be online.
+
+**Persistent layout (already in place on svr001):**
+
+| Resource | Persistent location | Symlink target |
+|----------|---------------------|----------------|
+| sops, age, age-keygen binaries | `/boot/config/sops/{sops,age,age-keygen}` | `/usr/local/bin/{sops,age,age-keygen}` (re-created at boot) |
+| Per-machine age key | `/boot/config/sops/keys.txt` | `/root/.config/sops/age/keys.txt` |
+| Cloned config repo | `/mnt/user/appdata/robbohome-config/` | `/root/data/config` |
+
+**Boot persistence** is provided by appending to `/boot/config/go` (the Unraid post-boot hook):
+```bash
+# RobboHome SOPS persistence
+if [ -d /boot/config/sops ]; then
+  install -m 0755 /boot/config/sops/sops       /usr/local/bin/sops
+  install -m 0755 /boot/config/sops/age        /usr/local/bin/age
+  install -m 0755 /boot/config/sops/age-keygen /usr/local/bin/age-keygen
+  mkdir -p /root/.config/sops/age /root/data
+  ln -sfn /boot/config/sops/keys.txt              /root/.config/sops/age/keys.txt
+  ln -sfn /mnt/user/appdata/robbohome-config      /root/data/config
+fi
+```
+
+**Initial install (idempotent — re-running just refreshes binaries):**
+```bash
+mkdir -p /boot/config/sops
+# age + age-keygen — note --no-same-owner (tarball has uid/gid 1001)
+AGE_VER=$(curl -sL https://api.github.com/repos/FiloSottile/age/releases/latest | grep tag_name | head -1 | cut -d'"' -f4)
+curl -sL "https://github.com/FiloSottile/age/releases/download/${AGE_VER}/age-${AGE_VER}-linux-amd64.tar.gz" \
+  | tar -xz --no-same-owner --strip-components=1 -C /boot/config/sops age/age age/age-keygen
+chmod +x /boot/config/sops/{age,age-keygen}
+# sops
+SOPS_VER=$(curl -sL https://api.github.com/repos/getsops/sops/releases/latest | grep tag_name | head -1 | cut -d'"' -f4)
+curl -sL -o /boot/config/sops/sops "https://github.com/getsops/sops/releases/download/${SOPS_VER}/sops-${SOPS_VER}.linux.amd64"
+chmod +x /boot/config/sops/sops
+# install for current session
+install -m 0755 /boot/config/sops/{sops,age,age-keygen} /usr/local/bin/
+```
+
+**Gotchas on Unraid:**
+- `tmpfs` doesn't always support atomic rename, so `ssh ... -T git@github.com` may print `hostfile_replace_entries: ... Operation not permitted`. The `known_hosts` file IS still written; the warning is benign.
+- Don't put the age key in `/root/.config/sops/age/keys.txt` directly — it'll vanish on reboot. Always put it on `/boot/config/` and symlink.
+- Don't clone the config repo into `/root/data/config` directly for the same reason — clone into `/mnt/user/appdata/` and symlink.
 
 ---
 
