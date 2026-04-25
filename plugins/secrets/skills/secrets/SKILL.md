@@ -190,6 +190,119 @@ git push
 
 ---
 
+## Hygiene: auditing for stale plaintext
+
+Use this flow when `openclaw secrets audit` reports `PLAINTEXT_FOUND`, or when you find scattered credential files anywhere on the system. Goal: decide per finding whether to **delete** (stale residue) or **migrate** (live value → SecretRef pointing at our SOPS-managed `secrets.json`).
+
+### 1. Always back up first
+```bash
+bash ~/.openclaw/scripts/backup-to-github.sh ~/data/infrastructure
+```
+Pushes `~/.openclaw/` to `robbohome-infrastructure`. Reversible point.
+
+### 2. Run the audit
+```bash
+openclaw secrets audit
+```
+- `PLAINTEXT_FOUND` in `~/.openclaw/openclaw.json` → typically **live** (provider/skill API keys in active config). Migrate.
+- `PLAINTEXT_FOUND` in `~/.openclaw/agents/*/agent/auth-profiles.json` → **often stale** (old provider profiles left over from previous setups). Investigate before assuming.
+- `LEGACY_RESIDUE` for OAuth profiles (e.g. `openai-codex:default`) → out of scope per OpenClaw; leave alone.
+
+### 3. For per-agent findings: hash-compare across agents
+Determine whether the same token is reused (one secret, many files) or distinct per agent — without printing values:
+```bash
+find ~/.openclaw/agents -path '*/agent/auth-profiles.json' -type f | while read f; do
+  agent=$(echo "$f" | sed 's|.*/agents/||;s|/agent/auth-profiles.json||')
+  hash=$(jq -r '.profiles."<PROVIDER>:<MODE>".token // empty' "$f" 2>/dev/null \
+         | shasum -a 256 | awk '{print substr($1,1,12)}')
+  [ -n "$hash" ] && [ "$hash" != "e3b0c44298fc" ] && echo "$hash  $agent"
+done | sort
+```
+(`e3b0c44298fc` is the sha256 of the empty string — filters out empty-token files. Replace `<PROVIDER>:<MODE>`, e.g. `anthropic:manual`.)
+
+Group by hash: same hash = one shared token; distinct = multiple.
+
+### 4. Decide active vs stale
+Active signals (→ migrate to SecretRef):
+- Global `~/.openclaw/openclaw.json` `defaults.model.primary` references this provider
+- Global `auth.profiles` registers this provider
+- The profile entry is fully populated (`access`, `refresh`, `expires`, `accountId`, `managedBy`)
+- `openclaw doctor` references this provider as configured/in-use
+
+Stale signals (→ delete):
+- Provider not in `defaults.model.primary`
+- Provider not in global `auth.profiles`
+- Profile is a bare stub: just `{type, provider, token}` with no oauth/expiry fields
+- Only mentions outside auth-profiles are in `*.jsonl` / `*.trajectory.jsonl` (those are session logs, not config)
+
+### 5a. Archive-then-delete (stale path)
+
+**Always archive before deleting.** The OpenClaw backup script's targeted globs ignore `~/.openclaw-archive/`, so this directory is safe from being re-pushed to the infra repo. Archives are local-only quick-recovery copies; the authoritative pre-cleanup state lives in git history of `robbohome-infrastructure`.
+
+```bash
+PROVIDER="<PROVIDER>:<MODE>"     # e.g. anthropic:manual
+TS=$(date -u +%Y-%m-%dT%H%M%SZ)
+ARCHIVE="$HOME/.openclaw-archive/auth-profiles-${PROVIDER//:/_}-${TS}"
+mkdir -p "$ARCHIVE"
+chmod 700 "$HOME/.openclaw-archive" "$ARCHIVE"
+
+find ~/.openclaw/agents -path '*/agent/auth-profiles.json' -type f | while IFS= read -r f; do
+  if jq -e --arg p "$PROVIDER" '.profiles | has($p)' "$f" >/dev/null 2>&1; then
+    agent=$(echo "$f" | sed 's|.*/agents/||;s|/agent/auth-profiles.json||')
+    # Archive the removed entry only (with metadata)
+    jq --arg ts "$TS" --arg agent "$agent" --arg key "$PROVIDER" \
+       '{archived_at: $ts, source_agent: $agent, removed_profile_key: $key, profile: .profiles[$key]}' \
+       "$f" > "$ARCHIVE/${agent}.json"
+    chmod 600 "$ARCHIVE/${agent}.json"
+    # Now delete from the live file
+    tmp="$(mktemp "${f}.XXXXXX")"
+    jq --arg p "$PROVIDER" 'del(.profiles[$p])' "$f" > "$tmp" \
+      && mv "$tmp" "$f" \
+      && echo "archived + cleaned: $agent" \
+      || rm -f "$tmp"
+  fi
+done
+
+echo "Archive: $ARCHIVE"
+```
+
+Then re-audit (`openclaw secrets audit`), run `openclaw doctor`, and re-run the backup script to push the cleaned HEAD.
+
+### 5a.i. Recovering from archive (if cleanup needs to be reverted)
+
+```bash
+ARCHIVE="$HOME/.openclaw-archive/<archive-folder>"
+for arc in "$ARCHIVE"/*.json; do
+  agent=$(jq -r .source_agent "$arc")
+  key=$(jq -r .removed_profile_key "$arc")
+  live="$HOME/.openclaw/agents/$agent/agent/auth-profiles.json"
+  [ -f "$live" ] || continue
+  tmp="$(mktemp "${live}.XXXXXX")"
+  jq --slurpfile arc "$arc" --arg key "$key" \
+     '.profiles[$key] = $arc[0].profile' "$live" > "$tmp" \
+     && mv "$tmp" "$live" \
+     && echo "restored: $agent $key"
+done
+```
+
+The authoritative pre-cleanup state is also in `git log` of `~/data/infrastructure/openclaw-backup/config/`, so `git show <commit>:openclaw-backup/config/agents/<agent>/auth-profiles.json` is always a fallback.
+
+### 5b. Migrate (active path)
+Use OpenClaw's native flow — don't roll your own:
+```bash
+openclaw secrets configure --agent <id> --plan-out /tmp/plan.json
+# review plan, then:
+openclaw secrets configure --agent <id> --apply
+```
+Centralise the value in `~/.openclaw/secrets.json` (which is already SOPS-managed via `~/data/config/.secrets.openclaw.json` + `sync-openclaw.sh`). Each agent file then references it via SecretRef instead of holding the literal.
+
+### 6. After cleanup or migration
+- **Revoke any deleted token at the provider's console.** Deletion clears it from disk but the value is still alive in pre-cleanup git history of `robbohome-infrastructure`. Revocation is the only way to neutralise it.
+- Run `openclaw secrets audit` again; the relevant findings should be gone.
+- `bash ~/.openclaw/scripts/backup-to-github.sh ~/data/infrastructure` to push the cleaned HEAD.
+
+---
+
 ## Multi-machine coordination (5 hosts)
 
 ### Conflict avoidance
