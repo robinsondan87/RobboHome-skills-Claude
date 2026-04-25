@@ -36,9 +36,16 @@ Skills already updated to this pattern: `cicd`, `cloudflare`, `cloudflare-tunnel
 
 ## Onboarding a new machine
 
-Run on the **new** machine first, then come back to a recipient machine to grant access.
+Two-party flow: the new machine self-declares as a candidate (steps 1–4), then **any** already-authed machine grants access (step 5). The Mac is not special after the initial bootstrap — any onboarded host can do step 5.
 
-### 1. Install sops + age
+### Why two parties?
+Editing `.sops.yaml` doesn't touch the encrypted file. The data key inside `.secrets.env` is wrapped separately for each existing recipient. To re-wrap it for the new larger recipient list, you need a private key that can already unwrap it — i.e. an existing recipient. So a stolen GitHub token can self-add to `.sops.yaml` but can't read secrets until an existing trusted machine runs `sops updatekeys`.
+
+---
+
+### On the NEW machine
+
+#### 1. Install sops + age
 ```bash
 # macOS
 brew install sops age
@@ -49,41 +56,68 @@ sudo apt install age
 # (apt sops is usually outdated)
 ```
 
-### 2. Clone the config repo
+#### 2. Clone the config repo
 ```bash
 mkdir -p ~/data && cd ~/data
 git clone git@github.com:robinsondan87/robbohome-config.git config
 cd config
 ```
 
-### 3. Generate this machine's age keypair
+#### 3. Generate this machine's age keypair
 ```bash
 mkdir -p ~/.config/sops/age
 age-keygen -o ~/.config/sops/age/keys.txt
 chmod 600 ~/.config/sops/age/keys.txt
 ```
 
-The command prints the **public key** (`age1...`). Capture it — that's what gets shared.
+`age-keygen` prints the **public key** (`age1...`). Note it down — you'll add it to `.sops.yaml` next.
 
-### 4. Add this machine as a recipient (run on a machine that's ALREADY a recipient)
-On the existing recipient machine (e.g. the Mac):
+#### 4. Self-declare as a candidate recipient
 ```bash
-cd ~/data/config
-git pull
-# Edit .sops.yaml — add the new machine's public key under `age:`
+cd ~/data/config && git pull
 $EDITOR .sops.yaml
-# Re-encrypt the data key for the updated recipient list
-sops updatekeys .secrets.env
-git add .sops.yaml .secrets.env
-git commit -m "feat: add <hostname> as sops recipient"
+```
+
+Append the public key to the comma-separated list under `age:`. Existing format:
+```yaml
+creation_rules:
+  - path_regex: \.secrets\.env$
+    age: >-
+      age1existing...,age1newhost...
+```
+
+Then push:
+```bash
+git add .sops.yaml
+git commit -m "chore: propose <hostname> as sops recipient"
 git push
 ```
 
-### 5. Verify on the new machine
+At this point the new machine still **cannot** decrypt — it's only listed in `.sops.yaml`, not yet wrapped into the data key. Tell whoever is on an already-authed machine to run step 5.
+
+---
+
+### On ANY already-authed machine (grant)
+
+#### 5. Re-wrap the data key
+```bash
+cd ~/data/config && git pull
+sops updatekeys .secrets.env
+git commit -am "chore: grant <hostname> sops access"
+git push
+```
+
+`sops updatekeys` reads `.sops.yaml`, unwraps the data key with this machine's existing age key, and re-wraps it for every recipient currently in the list. The encrypted values themselves don't change.
+
+---
+
+### On the new machine (verify)
+
+#### 6. Pull and confirm
 ```bash
 cd ~/data/config && git pull
 source ~/data/config/load-secrets.sh
-# Should load without error. Confirm with: echo "${PORTAINER_USERNAME:-MISSING}"
+echo "${PORTAINER_USERNAME:-MISSING}"   # should print, not "MISSING"
 ```
 
 ---
