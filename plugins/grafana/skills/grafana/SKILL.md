@@ -91,6 +91,64 @@ When building a panel that POSTs a GraphQL query, **use `body_type: "graphql"` a
 
 The error `"error while performing the infinity query. unsuccessful HTTP response code\nstatus code : 400 Bad Request"` with no other detail is the classic symptom.
 
+## Templating — host and container variables
+
+Multi-select dropdowns at the top of the dashboard. The custom-variable pattern with `${var:singlequote}` is the easiest way to filter NRQL `IN (…)` clauses:
+
+```json
+"templating": {
+  "list": [
+    {
+      "name": "host", "type": "custom",
+      "query": "dans-macbook-pro,robbo-mac-mini,svr001,svr002,svr003",
+      "includeAll": true, "multi": true
+    },
+    {
+      "name": "container", "type": "query",
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "<ds-uid>"},
+      "query": {"queryType": "infinity", "infinityQuery": {
+        "type": "json", "source": "url", "format": "table", "parser": "backend",
+        "root_selector": "data.actor.account.nrql.results",
+        "url_options": {"method":"POST","body_type":"graphql","body_content_type":"application/json",
+          "body_graphql_query": "{ actor { account(id: <id>) { nrql(query: \"SELECT uniqueCount(name) FROM ContainerSample SINCE 1 hour ago FACET name LIMIT 100\") { results } } } }"},
+        "columns": [{"selector":"facet","text":"name","type":"string"}]
+      }},
+      "includeAll": true, "multi": true, "refresh": 1
+    }
+  ]
+}
+```
+
+Use in NRQL:
+```sql
+WHERE entityName IN (${host:singlequote})
+WHERE hostname IN (${host:singlequote}) AND name IN (${container:singlequote})
+```
+
+Don't set `allValue` — without it, `${var:singlequote}` expands "All" to every option quoted, which `IN (…)` accepts directly. With `allValue` set to a sentinel, you have to special-case it.
+
+`SystemSample`/`StorageSample`/`NetworkSample`/`ProcessSample`/`Log` use `entityName`. `ContainerSample` uses `hostname`. NRQL is case-sensitive on field names.
+
+## Dashboard time picker integration
+
+Use Grafana's `${__from}` / `${__to}` (epoch milliseconds) instead of fixed `SINCE 1 hour ago`:
+```sql
+SELECT … FROM SystemSample WHERE entityName IN (${host:singlequote})
+SINCE ${__from} UNTIL ${__to} TIMESERIES AUTO FACET entityName
+```
+Then the dashboard's top-right time picker drives every panel. `TIMESERIES AUTO` lets NR pick the bucket size.
+
+Keep account-wide queries on fixed ranges (`SINCE this month`, `SINCE 24 hours ago`) — the time picker on those is meaningless.
+
+## Inserting a WHERE clause into NRQL via string-replace — gotcha
+
+Naïve `q.replace("WHERE ", "...")` will hit the **first** `WHERE` in the query, which may be inside `percentage(count(*), WHERE result = 'SUCCESS')` or another nested filter — it will silently destroy the inner filter.
+
+Always anchor against `FROM <EventType>` instead:
+```python
+q = q.replace("FROM SyntheticCheck", "FROM SyntheticCheck WHERE monitorName LIKE 'RobboHome%'", 1)
+```
+
 ## Critical gotcha — multi-series timeseries (split by host)
 
 Infinity's backend parser returns one frame containing **all rows mixed together** even when there's a string column like `host`. Grafana's timeseries panel renders that as a single zigzag line jumping between hosts (looks like wild 0→60% oscillation).
