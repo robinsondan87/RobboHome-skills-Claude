@@ -77,7 +77,35 @@ Rotation: update the SecretRef + `openclaw secrets reload`. No MCP/agent restart
 
 ## Tool inventory
 
-(Filled during Phase 1 step 6 by Beacon listing tools and grouping by read/write — kept here for cross-session reference.)
+**Verified live 2026-04-25** — full categorised list in [`~/.openclaw/workspace/agents/homelab-unifi-agent/TOOLS.md`](../../../../.openclaw/workspace/agents/homelab-unifi-agent/TOOLS.md).
+
+The MCP exposes only **5 top-level entry points** — the 167 underlying tools are accessed via a meta-tool pattern:
+
+- `unifi_tool_index` — discover tools (call first, optionally with a filter)
+- `unifi_execute` — execute one tool by name with arguments
+- `unifi_batch` — execute several in parallel (good for one-shot diagnose)
+- `unifi_batch_status` — poll a batch operation
+- `unifi_load_tools` — advanced direct-load (avoid)
+
+### Counts (167 total)
+
+| Category | Count | Highlights |
+|---|---|---|
+| Read | 81 | `list_clients`, `list_devices`, `list_networks`, `list_dns_records`, `list_alarms`, `get_dashboard`, `get_network_health`, `get_port_stats`, `get_speedtest_results`, `get_system_info`, `get_wan_status` (via `get_gateway_stats`) |
+| Phase 2 allowed (5) | 5 | `unifi_rename_client`, `unifi_set_client_ip_settings` (fixed-IP + local-DNS), `unifi_create_dns_record`, `unifi_update_dns_record`, `unifi_delete_dns_record` |
+| Phase 2 refused | 81 | firewall, VLAN/network create/update, port profiles, WLAN, admin users, devices (adopt/forget/restart), VPN, QoS, traffic rules, alarms (archive/forget), backups, clients (block/unblock/forget/authorize) |
+
+### Important UDM modeling note
+
+**Static DHCP reservations are client properties, not separate entities.** UDM does not expose a separate "DHCP reservation" tool — `unifi_set_client_ip_settings` sets a fixed IP (and optionally a local DNS record) on a client by MAC. Beacon should treat this as the static-lease tool.
+
+### Mutation flow
+
+Every Phase 2 write is gated by a preview→confirm token:
+1. Beacon calls `unifi_execute(name=<tool>, arguments={..., confirm: false})` → MCP returns a preview + `confirm:<id>` token
+2. Beacon shows the user the diff + the token
+3. User replies the **exact** `confirm:<id>` token (not "yes do it")
+4. Beacon calls `unifi_execute(..., confirm: true)` with the token → MCP applies → Beacon logs to `memory/incident-log.md`
 
 ## Phase 2 write scope (live)
 
