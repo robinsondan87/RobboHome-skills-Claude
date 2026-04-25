@@ -40,7 +40,7 @@ gh api repos/robinsondan87/robbohome-hello-world/actions/runners/registration-to
 
 ## GitHub Secrets (set on each new repo)
 ```bash
-source ~/data/config/.secrets
+source ~/data/config/load-secrets.sh
 gh secret set CLOUDFLARE_API_TOKEN --repo robinsondan87/REPO --body "$CLOUDFLARE_API_TOKEN"
 gh secret set CLOUDFLARE_ACCOUNT_ID --repo robinsondan87/REPO --body "$CLOUDFLARE_ACCOUNT_ID"
 gh secret set CLOUDFLARE_TUNNEL_ID --repo robinsondan87/REPO --body "$CLOUDFLARE_TUNNEL_ID"

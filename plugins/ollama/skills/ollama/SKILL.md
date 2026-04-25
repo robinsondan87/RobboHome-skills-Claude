@@ -7,7 +7,7 @@ description: ollama skill for RobboHome automation.
 ## Access
 - Ollama API: http://svr002:11434 (localhost only, not exposed externally)
 - Open WebUI: http://svr002:3001 / https://ai.robbohome.com (Google auth)
-- Open WebUI credentials in ~/data/config/.secrets
+- Open WebUI credentials: `OPENWEBUI_USERNAME` / `OPENWEBUI_PASS` from `source ~/data/config/load-secrets.sh`
 
 ## Installed models
 | Model        | Size  | Capabilities              | TPS @ 150W |

@@ -5,7 +5,7 @@ description: portainer skill for RobboHome automation.
 # Skill: Portainer Management
 
 ## Credentials
-In ~/data/config/.secrets:
+SOPS-encrypted in `~/data/config/.secrets.env`. Load with `source ~/data/config/load-secrets.sh`. Keys:
 - PORTAINER_URL=http://svr002:9000
 - PORTAINER_API_KEY=ptr_In1ifvRZX/CSAU5fg0iWi2BmciLEVhskwVPsI3z35f0=
 - PORTAINER_USERNAME=admin

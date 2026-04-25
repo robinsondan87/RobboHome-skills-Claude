@@ -23,7 +23,7 @@ When asked to initialise a new RobboHome project:
    ```
 6. Set required GitHub Secrets on the new repo:
    ```bash
-   source ~/data/config/.secrets
+   source ~/data/config/load-secrets.sh
    gh secret set CLOUDFLARE_API_TOKEN --repo robinsondan87/REPO --body "$CLOUDFLARE_API_TOKEN"
    gh secret set CLOUDFLARE_ACCOUNT_ID --repo robinsondan87/REPO --body "$CLOUDFLARE_ACCOUNT_ID"
    gh secret set CLOUDFLARE_TUNNEL_ID --repo robinsondan87/REPO --body "$CLOUDFLARE_TUNNEL_ID"

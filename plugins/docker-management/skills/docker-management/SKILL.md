@@ -52,7 +52,7 @@ ssh svr002 'docker system prune -f'
 
 ## Portainer (web UI)
 - URL: https://portainer.robbohome.com (behind Cloudflare Access)
-- Credentials: `admin` / see `~/data/config/.secrets` → `PORTAINER_PASS`
+- Credentials: `admin` / `PORTAINER_PASS` from `source ~/data/config/load-secrets.sh`
 - Useful for: viewing container stats, logs, volumes without SSH
 
 ## Data volumes on svr002

@@ -5,7 +5,7 @@ description: cloudflare skill for RobboHome automation.
 # Skill: Cloudflare Management
 
 ## Credentials
-All values in ~/data/config/.secrets:
+SOPS-encrypted in `~/data/config/.secrets.env`. Load with `source ~/data/config/load-secrets.sh`. Keys:
 - CLOUDFLARE_API_TOKEN
 - CLOUDFLARE_ACCOUNT_ID=e9328cb93f3e347ef118a3b6dfa5678d
 - CLOUDFLARE_TUNNEL_ID=02b1a979-319c-48a3-8ec4-29dbcab727d4

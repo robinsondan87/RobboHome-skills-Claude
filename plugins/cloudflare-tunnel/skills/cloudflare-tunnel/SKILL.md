@@ -7,7 +7,7 @@ description: cloudflare-tunnel skill for RobboHome automation.
 Exposes self-hosted services on svr002 publicly via Cloudflare Tunnel without opening ports on the router.
 
 ## Credentials
-Stored in `~/data/config/.secrets`:
+Stored SOPS-encrypted in `~/data/config/.secrets.env`. Load via `source ~/data/config/load-secrets.sh`. Keys:
 ```
 CLOUDFLARE_API_TOKEN=...
 CLOUDFLARE_ACCOUNT_ID=e9328cb93f3e347ef118a3b6dfa5678d
@@ -35,7 +35,7 @@ Adds an email login gate in front of any app. Useful for admin tools (Portainer,
 
 ### Add Access protection to an app
 ```bash
-source ~/data/config/.secrets
+source ~/data/config/load-secrets.sh
 # Create application via API
 curl -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/access/apps" \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
@@ -45,7 +45,7 @@ curl -X POST "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_
 
 ### Remove Access protection from an app
 ```bash
-source ~/data/config/.secrets
+source ~/data/config/load-secrets.sh
 # List apps to find ID
 curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/access/apps" \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | python3 -c "
