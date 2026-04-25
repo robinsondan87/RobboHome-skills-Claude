@@ -82,7 +82,7 @@ to the private `robbohome-infrastructure` repo for catastrophic recovery.
 **Always do the local quick-backup above first — the GitHub backup is the long-term record.**
 
 ```bash
-bash ~/robbohome-infrastructure/openclaw-backup/backup.sh
+bash ~/data/infrastructure/openclaw-backup/backup.sh
 ```
 
 What gets backed up:
@@ -104,7 +104,7 @@ What is skipped (large, not needed for restore):
 ## Restore from catastrophic failure
 
 Full step-by-step is in:
-`robbohome-infrastructure/openclaw-backup/RESTORE.md`
+`~/data/infrastructure/openclaw-backup/RESTORE.md`
 
 ### Quick summary
 
@@ -114,10 +114,11 @@ brew install node
 npm install -g openclaw@latest
 
 # 2. Clone infrastructure repo
-git clone git@github.com:robinsondan87/robbohome-infrastructure.git ~/robbohome-infrastructure
+mkdir -p ~/data
+git clone git@github.com:robinsondan87/robbohome-infrastructure.git ~/data/infrastructure
 
 # 3. Restore config
-BACKUP="$HOME/robbohome-infrastructure/openclaw-backup/config"
+BACKUP="$HOME/data/infrastructure/openclaw-backup/config"
 DEST="$HOME/.openclaw"
 mkdir -p "$DEST"
 
@@ -174,5 +175,6 @@ openclaw doctor --fix
 | Latest version | `npm view openclaw dist-tags.latest` |
 | Local changelog | `/opt/homebrew/lib/node_modules/openclaw/CHANGELOG.md` |
 | Docs | https://docs.openclaw.ai |
-| Backup script | `~/robbohome-infrastructure/openclaw-backup/backup.sh` |
-| Restore guide | `robbohome-infrastructure/openclaw-backup/RESTORE.md` |
+| Backup script | `~/data/infrastructure/openclaw-backup/backup.sh` |
+| Restore guide | `~/data/infrastructure/openclaw-backup/RESTORE.md` |
+| Infra repo (GitHub) | `robinsondan87/robbohome-infrastructure` (cloned to `~/data/infrastructure/`) |
