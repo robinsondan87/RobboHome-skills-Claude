@@ -159,15 +159,17 @@ At this point the new machine still **cannot** decrypt — it's only listed in `
 
 ### On ANY already-authed machine (grant)
 
-#### 5. Re-wrap the data key
+#### 5. Re-wrap the data key for every encrypted file
 ```bash
 cd ~/data/config && git pull
 sops updatekeys .secrets.env
+sops updatekeys .secrets.openclaw.json
+for f in ssh/*.sops; do sops updatekeys "$f"; done
 git commit -am "chore: grant <hostname> sops access"
 git push
 ```
 
-`sops updatekeys` reads `.sops.yaml`, unwraps the data key with this machine's existing age key, and re-wraps it for every recipient currently in the list. The encrypted values themselves don't change.
+`sops updatekeys` reads `.sops.yaml`, unwraps the data key with this machine's existing age key, and re-wraps it for every recipient currently in the list. The encrypted values themselves don't change. **Every encrypted file has its own data key wrapping**, so you must run `updatekeys` on each one — a recipient added but skipped here can decrypt some files but not others.
 
 ---
 
@@ -225,14 +227,17 @@ Same as add/change for whichever file holds it — open with `sops`, edit the va
 ### Remove a recipient (machine retired or key compromised)
 ```bash
 cd ~/data/config && git pull
-$EDITOR .sops.yaml            # remove the machine's age public key
+$EDITOR .sops.yaml            # remove the machine's age public key from EVERY rule
 sops updatekeys .secrets.env
 sops updatekeys .secrets.openclaw.json
-git add .sops.yaml .secrets.env .secrets.openclaw.json
+for f in ssh/*.sops; do sops updatekeys "$f"; done
+git add .sops.yaml .secrets.env .secrets.openclaw.json ssh/*.sops
 git commit -m "chore: remove <hostname> as sops recipient"
 git push
 ```
-**Important:** also rotate every secret value in both files. The retired machine still has access to historical git versions and could decrypt them with its old key.
+**Important:** also rotate every secret value (and the SSH keys themselves). The retired machine still has access to historical git versions of every encrypted file and could decrypt them with its old key. Concretely:
+- `sops .secrets.env` and `sops .secrets.openclaw.json` — change every value, save.
+- For each `ssh/*.sops`: regenerate the keypair (`ssh-keygen -t ed25519 -f /tmp/newkey`), re-encrypt, push, then re-deploy on every machine via `install-ssh-keys.sh`, then update `authorized_keys` on every remote that trusted the old public key (svr001/svr002/svr003, GitHub, etc.). SSH rotation is the heaviest of the three — plan it deliberately.
 
 ---
 
