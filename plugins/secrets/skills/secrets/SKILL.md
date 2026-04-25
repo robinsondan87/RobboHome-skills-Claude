@@ -8,7 +8,9 @@ Single source of truth for shared credentials across every machine that runs Rob
 
 ## Architecture in one paragraph
 
-`~/data/config/.secrets.env` is a SOPS-encrypted dotenv file in the `robbohome-config` git repo. Each machine has its own age keypair; each machine's **public** key is listed as a recipient in `.sops.yaml`. The encrypted file is committed and pushed normally. A helper script `~/data/config/load-secrets.sh` decrypts on demand into the current shell. Skills source the helper instead of touching the encrypted file directly.
+The `robbohome-config` git repo holds two SOPS-encrypted secret stores: `~/data/config/.secrets.env` (dotenv, for shells/skills) and `~/data/config/.secrets.openclaw.json` (JSON, mirrors OpenClaw's `~/.openclaw/secrets.json` shape). Each machine has its own age keypair; each machine's **public** key is listed as a recipient in `.sops.yaml`. Both encrypted files are committed and pushed normally. Two consumers:
+- Shell skills `source ~/data/config/load-secrets.sh` to get dotenv values into the current shell.
+- OpenClaw is fed by `~/data/config/sync-openclaw.sh` which decrypts the JSON file and atomically rewrites `~/.openclaw/secrets.json`, then runs `openclaw secrets reload`.
 
 ## Key reference
 
@@ -16,21 +18,41 @@ Single source of truth for shared credentials across every machine that runs Rob
 |------|-------|
 | Config repo | `git@github.com:robinsondan87/robbohome-config.git` |
 | Local clone path | `~/data/config` |
-| Encrypted secrets | `~/data/config/.secrets.env` (committed) |
+| Encrypted dotenv | `~/data/config/.secrets.env` (committed) |
+| Encrypted OpenClaw JSON | `~/data/config/.secrets.openclaw.json` (committed) |
 | Recipient list | `~/data/config/.sops.yaml` (committed) |
-| Helper | `~/data/config/load-secrets.sh` (committed) |
+| Shell helper | `~/data/config/load-secrets.sh` (committed) |
+| OpenClaw sync script | `~/data/config/sync-openclaw.sh` (committed) |
+| OpenClaw plaintext (derived) | `~/.openclaw/secrets.json` — overwritten by sync, do not hand-edit |
 | Age key (per machine) | `~/.config/sops/age/keys.txt` (mode 600, **never committed**) |
-| Helper env var | `SOPS_AGE_KEY_FILE` — helper sets this if unset |
-| Plaintext (if any) | `~/data/config/.secrets`, `.secrets.bak` — gitignored, do not commit |
+| Env var | `SOPS_AGE_KEY_FILE` — helper + sync set this if unset |
+| Plaintext (legacy/backup) | `~/data/config/.secrets`, `.secrets.bak`, `~/.openclaw/secrets.json.pre-sops-bak` — gitignored, do not commit |
 
-## How skills use it
+## How shell skills use it
 
 ```bash
 source ~/data/config/load-secrets.sh
 # now $PORTAINER_PASS, $CLOUDFLARE_API_TOKEN, etc. are exported
 ```
 
-Skills already updated to this pattern: `cicd`, `cloudflare`, `cloudflare-tunnel`, `docker-management`, `init-project`, `ollama`, `portainer`. Any new skill that needs a credential should `source` the helper rather than hardcoding or re-reading dotenv files.
+Skills already on this pattern: `cicd`, `cloudflare`, `cloudflare-tunnel`, `docker-management`, `init-project`, `ollama`, `portainer`. Any new skill that needs a credential should `source` the helper rather than hardcoding or re-reading dotenv files.
+
+## How OpenClaw uses it
+
+OpenClaw doesn't read SOPS directly — it reads `~/.openclaw/secrets.json`. The sync script bridges the two. Edit/refresh flow:
+
+```bash
+cd ~/data/config && git pull
+sops .secrets.openclaw.json     # opens decrypted in $EDITOR; save re-encrypts
+~/data/config/sync-openclaw.sh  # decrypts → ~/.openclaw/secrets.json → openclaw secrets reload
+git add .secrets.openclaw.json
+git commit -m "feat: <what changed and why>"
+git push
+```
+
+On any other machine that runs OpenClaw (currently just the Mac, but the encrypted file syncs everywhere): `git pull && ~/data/config/sync-openclaw.sh`.
+
+**Important:** never hand-edit `~/.openclaw/secrets.json` — the next sync will overwrite it. The encrypted file is the source of truth.
 
 ---
 
@@ -130,7 +152,7 @@ cd ~/data/config && git pull   # ensure recipient list + encrypted file are curr
 ```
 In practice, skills can `source` the helper without pulling — values rarely change. Pull explicitly when adding/rotating.
 
-### Add or change a secret
+### Add or change a shell/skill secret
 ```bash
 cd ~/data/config && git pull
 sops .secrets.env             # opens decrypted in $EDITOR; save closes & re-encrypts
@@ -140,19 +162,31 @@ git push
 ```
 Other machines pick it up with `git pull` next time they run the helper.
 
+### Add or change an OpenClaw secret
+```bash
+cd ~/data/config && git pull
+sops .secrets.openclaw.json   # edit the JSON path in $EDITOR; save re-encrypts
+~/data/config/sync-openclaw.sh # apply locally + openclaw secrets reload
+git add .secrets.openclaw.json
+git commit -m "feat: <what changed and why>"
+git push
+```
+On any other Mac that runs OpenClaw: `git pull && ~/data/config/sync-openclaw.sh`.
+
 ### Rotate a secret value
-Same as add/change — open with `sops`, edit the value, save, commit, push.
+Same as add/change for whichever file holds it — open with `sops`, edit the value, save, commit, push (and run the OpenClaw sync if it was the JSON file).
 
 ### Remove a recipient (machine retired or key compromised)
 ```bash
 cd ~/data/config && git pull
 $EDITOR .sops.yaml            # remove the machine's age public key
 sops updatekeys .secrets.env
-git add .sops.yaml .secrets.env
+sops updatekeys .secrets.openclaw.json
+git add .sops.yaml .secrets.env .secrets.openclaw.json
 git commit -m "chore: remove <hostname> as sops recipient"
 git push
 ```
-**Important:** also rotate every secret value. The retired machine still has access to historical git versions of `.secrets.env` and could decrypt them with its old key.
+**Important:** also rotate every secret value in both files. The retired machine still has access to historical git versions and could decrypt them with its old key.
 
 ---
 
@@ -180,7 +214,8 @@ If a machine has secrets in scattered `.env` files / `~/.bashrc` exports / docke
 
 - **Default age key path on macOS is NOT `~/.config/sops/age/keys.txt`** — sops looks at `~/Library/Application Support/sops/age/keys.txt` by default. The helper exports `SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt` to keep the path consistent across macOS and Linux.
 - **The age private key never goes in git.** It's per-machine. Treat it like an SSH private key.
-- **Don't commit plaintext.** `.secrets` and `.secrets.bak` are in `.gitignore`. `.secrets.env` is the only secrets file that should ever appear in `git status`.
+- **Don't commit plaintext.** `.secrets`, `.secrets.bak`, and any `.pre-sops-bak` files are gitignored. The only secrets files that should appear in `git status` are `.secrets.env` and `.secrets.openclaw.json`.
+- **Don't hand-edit `~/.openclaw/secrets.json`.** It's regenerated from the encrypted file by `sync-openclaw.sh`. Edit `.secrets.openclaw.json` via `sops`, then run the sync.
 - **`sops updatekeys` doesn't change values** — only re-wraps the data key for the current recipient list. Use it after editing `.sops.yaml`.
 - **Editing `.sops.yaml` alone changes nothing on disk.** You must run `sops updatekeys` afterwards or new recipients can't decrypt.
 - **Don't `cat .secrets.env`** expecting plaintext — values are AES-GCM encrypted; only keys are visible. Use `sops -d .secrets.env` to view.
@@ -189,4 +224,5 @@ If a machine has secrets in scattered `.env` files / `~/.bashrc` exports / docke
 ## Related skills
 
 - `cicd`, `cloudflare`, `cloudflare-tunnel`, `docker-management`, `init-project`, `ollama`, `portainer` — all consume secrets via the helper.
-- `maintain-skills` — when adding a new skill that needs credentials, document the keys it requires and source the helper.
+- `openclaw-update` — OpenClaw lifecycle; OpenClaw secrets are now sourced from this skill's encrypted JSON file via `sync-openclaw.sh`.
+- `maintain-skills` — when adding a new skill that needs credentials, document the keys it requires and source the helper (or, for OpenClaw plugins, reference the JSON path).
