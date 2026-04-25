@@ -80,20 +80,37 @@ Same `/etc/newrelic-infra.yml` pattern as svr002 (`display_name: svr003`, `role:
 This works for arm64 — New Relic ships arm64 packages in the same apt repo.
 
 ### Mac — Homebrew
-Use the `newrelic-infra-agent` formula (not `newrelic-cli`, that's a different tool):
+Use the `newrelic-infra-agent` formula (not `newrelic-cli`, that's a different tool). Apple Silicon paths shown — for Intel Macs swap `/opt/homebrew` for `/usr/local`.
+
+**Local Mac (with SSH access to svr002 for the key):**
 ```bash
 brew install newrelic-infra-agent
-mkdir -p /opt/homebrew/etc/newrelic-infra
-cat > /opt/homebrew/etc/newrelic-infra/newrelic-infra.yml <<EOF
-license_key: <key>
-display_name: dans-macbook-pro
+sudo mkdir -p /opt/homebrew/etc/newrelic-infra
+sudo tee /opt/homebrew/etc/newrelic-infra/newrelic-infra.yml >/dev/null <<EOF
+license_key: $(ssh svr002 grep ^NEW_RELIC_LICENSE_KEY= ~/data/config/.secrets | cut -d= -f2)
+display_name: $(hostname -s)
 custom_attributes:
   role: workstation
   environment: home
 EOF
 brew services start newrelic-infra-agent
 ```
-Runs as a user-scope launchd service (`~/Library/LaunchAgents/homebrew.mxcl.newrelic-infra-agent.plist`).
+
+**Remote Mac (no SSH access to svr002 — paste the literal license key):**
+```bash
+brew install newrelic-infra-agent
+sudo mkdir -p /opt/homebrew/etc/newrelic-infra
+sudo tee /opt/homebrew/etc/newrelic-infra/newrelic-infra.yml >/dev/null <<'EOF'
+license_key: <paste eu01xx…NRAL key here>
+display_name: CHANGE-ME
+custom_attributes:
+  role: workstation
+  environment: home
+EOF
+brew services start newrelic-infra-agent
+```
+
+Runs as a user-scope launchd service (`~/Library/LaunchAgents/homebrew.mxcl.newrelic-infra-agent.plist`). Verify with `brew services list | grep newrelic`.
 
 ## Verify reporting (NerdGraph)
 ```bash
