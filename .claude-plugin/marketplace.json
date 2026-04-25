@@ -25,6 +25,7 @@
     { "name": "svr002", "source": "./plugins/svr002" },
     { "name": "svr003", "source": "./plugins/svr003" },
     { "name": "home-assistant", "source": "./plugins/home-assistant" },
+    { "name": "newrelic", "source": "./plugins/newrelic" },
     { "name": "xcode-setup", "source": "./plugins/xcode-setup" },
     { "name": "bambu-integration", "source": "./plugins/bambu-integration" },
     { "name": "geekythings-business", "source": "./plugins/geekythings-business" },
