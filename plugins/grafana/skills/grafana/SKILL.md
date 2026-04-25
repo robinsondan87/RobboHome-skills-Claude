@@ -91,6 +91,45 @@ When building a panel that POSTs a GraphQL query, **use `body_type: "graphql"` a
 
 The error `"error while performing the infinity query. unsuccessful HTTP response code\nstatus code : 400 Bad Request"` with no other detail is the classic symptom.
 
+## Critical gotcha — multi-series timeseries (split by host)
+
+Infinity's backend parser returns one frame containing **all rows mixed together** even when there's a string column like `host`. Grafana's timeseries panel renders that as a single zigzag line jumping between hosts (looks like wild 0→60% oscillation).
+
+Fix: add a Grafana transformation `partitionByValues` on the string column you want to split by:
+```json
+"transformations": [
+  {"id": "partitionByValues", "options": {"fields": ["host"], "keepFields": false, "naming": {"asLabels": false}}}
+]
+```
+Now each unique value of `host` becomes its own series.
+
+For multi-FACET queries (e.g. `FACET entityName, mountPoint`), the `facet` column NR returns is a string like `"svr001,/mnt/cache"` — partitioning on that splits one series per host+mount combo.
+
+## Critical gotcha — dotted field names
+
+NRQL functions return field names like `average.cpuPercent` (literal dot in the key). Infinity's selector treats `.` as JSONPath nesting and silently returns null. **Always alias** in NRQL with `AS`:
+
+```sql
+-- bad: selector "average.cpuPercent" tries to read obj.average.cpuPercent → null
+SELECT average(cpuPercent) FROM SystemSample TIMESERIES FACET entityName
+
+-- good: selector "cpu" reads the flat field
+SELECT average(cpuPercent) AS cpu FROM SystemSample TIMESERIES FACET entityName
+```
+
+## Critical gotcha — mount points vary by host
+
+`StorageSample WHERE mountPoint = '/'` excludes Unraid entirely. Unraid (Slackware) has no `/` mount — only `/var/lib/docker`, `/mnt/cache`, `/mnt/disk1`, `/mnt/user`, `/etc/libvirt`. macOS reports both `/` and `/System/Volumes/Data` (same APFS volume, identical numbers).
+
+Use a curated mount allowlist + facet by both:
+```sql
+SELECT average(diskUsedPercent) AS disk
+FROM StorageSample
+WHERE mountPoint IN ('/', '/mnt/cache', '/mnt/disk1', '/mnt/user', '/var/lib/docker')
+SINCE 1 hour ago TIMESERIES 1 minute
+FACET entityName, mountPoint LIMIT 50
+```
+
 ## Diagnose what Infinity actually sends
 Point the datasource URL at `https://httpbin.org/anything` temporarily, set `root_selector: "headers"` in the panel, and httpbin echoes the exact request (headers + body) back. Restore the URL once done.
 
