@@ -1,0 +1,6 @@
+{
+  "name": "unifi",
+  "version": "1.0.0",
+  "description": "UniFi network specialist — controller info, MCP wiring, and gotchas for the home UDM at 192.168.1.1.",
+  "author": { "name": "robinsondan87" }
+}
