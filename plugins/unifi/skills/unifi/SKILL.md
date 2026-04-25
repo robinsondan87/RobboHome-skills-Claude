@@ -102,12 +102,19 @@ The MCP exposes only **5 top-level entry points** — the 167 underlying tools a
 ### Mutation flow
 
 Every Phase 2 write is gated by a preview→confirm token:
-1. Beacon calls `unifi_execute(name=<tool>, arguments={..., confirm: false})` → MCP returns a preview + `confirm:<id>` token
-2. Beacon shows the user the diff + the token
-3. User replies the **exact** `confirm:<id>` token (not "yes do it")
+1. Beacon calls `unifi_execute(name=<tool>, arguments={..., confirm: false})` → MCP returns a preview
+2. Beacon shows the user the diff + an exact `confirm:<id>` token. The MAC (or another unique identifier of the target) is a fine token — Beacon picked this convention live and it works well.
+3. User replies the **exact** `confirm:<id>` token. Bare "Confirm" is rejected with *"Need the exact `confirm:<id>` token."* (negative-path verified live 2026-04-25)
 4. Beacon calls `unifi_execute(..., confirm: true)` with the token → MCP applies → Beacon logs to `memory/incident-log.md`
 
-## Phase 2 write scope (live)
+### Known performance gotchas
+
+- **Meta-tool indirection cost:** every Phase 2 write requires 3-5 model round-trips (`unifi_tool_index` → reason → `unifi_execute(preview)` → user confirm → `unifi_execute(apply)`). Plan for ~30-60s per write under good conditions.
+- **Use `unifi_batch` for any diagnose needing 2+ reads** — sequential `unifi_execute` calls multiply latency.
+- **TOOLS.md must stay under 12k chars** — OpenClaw truncates bootstrap files above that threshold, leaving the agent under-informed and increasing round-trip count. Keep TOOLS.md focused on highlights + meta-tool guidance; use `unifi_tool_index` filter for the long tail.
+- **Codex auth 401s** — observed during the first live rename. Eventually recovers via auto-refresh; if it persists, run interactive auth refresh.
+
+## Phase 2 write scope (live since 2026-04-25)
 
 **Allowed writes:**
 - Rename client
