@@ -4,7 +4,7 @@ description: newrelic — New Relic infrastructure agent on all hosts (Unraid, U
 
 # Skill: New Relic
 
-EU-region account. Infrastructure agents run on all four hosts: svr001, svr002, svr003, dans-macbook-pro.
+EU-region account. Infrastructure agents run on all six hosts: svr001, svr002, svr003, daniels-macbook-pro-1, robbo-mac-mini, vmi3091030.
 
 ## Account & keys
 - **Region**: EU (license key prefix `eu01xx`, agent ships to EU endpoint automatically)
@@ -27,6 +27,8 @@ echo "$NEW_RELIC_LICENSE_KEY"
 | svr002 (Ubuntu) | `home-server` | apt + systemd |
 | svr003 (Debian Trixie arm64) | `backup-server` | apt + systemd, with `trusted=yes` workaround |
 | Daniels-MBP.lan | `workstation` | Homebrew + launchd |
+| robbo-mac-mini | `mac-mini-server` | Homebrew + launchd (also runs separately-installed `fluent-bit` for logs) |
+| vmi3091030 (Ubuntu jammy, Contabo VPS hosting SCC) | `scc-prod` | apt + systemd |
 
 ### svr001 — Unraid (Docker)
 Slackware is not on New Relic's officially supported OS list, so use `newrelic/infrastructure-bundle` (bundle includes on-host integrations: docker, redis, postgres, etc.).
