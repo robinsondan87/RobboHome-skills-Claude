@@ -12,7 +12,7 @@ Self-hosted Grafana on svr001 (Unraid). Pulls metrics from New Relic via NerdGra
 | Public URL | https://grafana.robbohome.com (Cloudflare Access gated by Google IDP) |
 | LAN URL | http://192.168.1.200:3030 |
 | Container port mapping | host 3030 → container 3000 |
-| Admin user/pass | `~/data/config/.secrets.env (SOPS-encrypted, see `skills/secrets/`)` keys `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASS` |
+| Admin user/pass | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASS` (SOPS-encrypted in `~/data/config/.secrets.env`, see `skills/secrets/`) |
 | Data dir | `/mnt/user/appdata/grafana` (container UID 472) |
 
 ## Deploy
@@ -33,16 +33,14 @@ docker run -d --name=grafana --restart=unless-stopped \
 **Don't install `grafana-newrelic-datasource`** — it's an Enterprise plugin that needs a paid Grafana license and won't load on free Grafana. Use `yesoreyeram-infinity-datasource` instead (free, queries any HTTP/JSON/GraphQL/CSV/XML, well-maintained).
 
 ## Cloudflare Tunnel + Access
-The Cloudflare account/tunnel/zone IDs are in `~/data/config/.secrets.env (SOPS-encrypted, see `skills/secrets/`)`. Steps to expose any service publicly via the existing tunnel:
+The Cloudflare account/tunnel/zone IDs and API token live in the SOPS-encrypted `~/data/config/.secrets.env` (see `skills/secrets/`). Steps to expose any service publicly via the existing tunnel:
 
 ```bash
-ssh svr002 'bash -c "
-set -a; . ~/data/config/.secrets.env (SOPS-encrypted, see `skills/secrets/`); set +a
+source ~/data/config/load-secrets.sh
 
 # 1. Add tunnel ingress route (fetch current config, insert new route before catch-all, PUT back)
-# 2. Create DNS CNAME record: grafana.robbohome.com -> <TUNNEL_ID>.cfargotunnel.com (proxied)
+# 2. Create DNS CNAME record: grafana.robbohome.com -> $CLOUDFLARE_TUNNEL_ID.cfargotunnel.com (proxied)
 # 3. Create Cloudflare Access app with email policy
-"'
 ```
 See `skills/cloudflare/SKILL.md` for the exact API call patterns. Grafana's Access app id was `5169bf32-ce09-4123-a7b4-c5675ef0b636` (subject to change).
 

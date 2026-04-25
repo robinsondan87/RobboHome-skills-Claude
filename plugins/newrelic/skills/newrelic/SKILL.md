@@ -9,14 +9,14 @@ EU-region account. Infrastructure agents run on all four hosts: svr001, svr002, 
 ## Account & keys
 - **Region**: EU (license key prefix `eu01xx`, agent ships to EU endpoint automatically)
 - **Account ID**: `4304361` (NerdGraph, NRQL, Grafana data source — all use this)
-- **Keys** (svr002:`~/data/config/.secrets`, mode 600):
+- **Keys** (SOPS-encrypted in `~/data/config/.secrets.env`, load via `source ~/data/config/load-secrets.sh`):
   - `NEW_RELIC_LICENSE_KEY` — Ingest license key, used by agents (`NRIA_LICENSE_KEY` env var)
   - `NEW_RELIC_USER_API_KEY` — User API key (`NRAK-…`) for REST/NerdGraph queries
 - **License key vs User API key**: agents need the **License** key. `NRAK-…` keys won't authenticate the infra agent.
 
-Fetch from any host:
 ```bash
-ssh svr002 "grep ^NEW_RELIC_LICENSE_KEY= ~/data/config/.secrets | cut -d= -f2"
+source ~/data/config/load-secrets.sh
+echo "$NEW_RELIC_LICENSE_KEY"
 ```
 
 ## Hosts
@@ -31,17 +31,20 @@ ssh svr002 "grep ^NEW_RELIC_LICENSE_KEY= ~/data/config/.secrets | cut -d= -f2"
 ### svr001 — Unraid (Docker)
 Slackware is not on New Relic's officially supported OS list, so use `newrelic/infrastructure-bundle` (bundle includes on-host integrations: docker, redis, postgres, etc.).
 
+Run from a host that has the secrets loaded (e.g. Mac or svr002):
 ```bash
-ssh svr001 "docker run -d --name newrelic-infra \
+source ~/data/config/load-secrets.sh
+
+ssh svr001 docker run -d --name newrelic-infra \
   --restart unless-stopped \
   --network=host --pid=host --privileged --cap-add=SYS_PTRACE \
   -v /:/host:ro \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e NRIA_LICENSE_KEY=\"\$(ssh svr002 grep ^NEW_RELIC_LICENSE_KEY= ~/data/config/.secrets | cut -d= -f2)\" \
-  -e NRIA_DISPLAY_NAME='svr001' \
-  -e NRIA_CUSTOM_ATTRIBUTES='{\"role\":\"unraid\",\"environment\":\"home\"}' \
+  -e NRIA_LICENSE_KEY="$NEW_RELIC_LICENSE_KEY" \
+  -e NRIA_DISPLAY_NAME=svr001 \
+  -e NRIA_CUSTOM_ATTRIBUTES='{"role":"unraid","environment":"home"}' \
   --label net.unraid.docker.managed=dockerman \
-  newrelic/infrastructure-bundle:latest"
+  newrelic/infrastructure-bundle:latest
 ```
 
 Expected (harmless) log warnings: `unable to initialize containerd client` (Unraid uses Docker, not containerd), `failed to connect to DBus` / `no systemd found` (Unraid is sysvinit). Host metrics + Docker container metrics + process samples all work normally despite these.
@@ -82,12 +85,13 @@ This works for arm64 — New Relic ships arm64 packages in the same apt repo.
 ### Mac — Homebrew
 Use the `newrelic-infra-agent` formula (not `newrelic-cli`, that's a different tool). Apple Silicon paths shown — for Intel Macs swap `/opt/homebrew` for `/usr/local`.
 
-**Local Mac (with SSH access to svr002 for the key):**
+**Local Mac (with the SOPS secrets repo cloned + age key set up — see `skills/secrets/`):**
 ```bash
 brew install newrelic-infra-agent
+source ~/data/config/load-secrets.sh
 sudo mkdir -p /opt/homebrew/etc/newrelic-infra
 sudo tee /opt/homebrew/etc/newrelic-infra/newrelic-infra.yml >/dev/null <<EOF
-license_key: $(ssh svr002 grep ^NEW_RELIC_LICENSE_KEY= ~/data/config/.secrets | cut -d= -f2)
+license_key: $NEW_RELIC_LICENSE_KEY
 display_name: $(hostname -s)
 custom_attributes:
   role: workstation
@@ -96,7 +100,7 @@ EOF
 brew services start newrelic-infra-agent
 ```
 
-**Remote Mac (no SSH access to svr002 — paste the literal license key):**
+**Remote Mac (not yet onboarded to SOPS — paste the literal license key):**
 ```bash
 brew install newrelic-infra-agent
 sudo mkdir -p /opt/homebrew/etc/newrelic-infra
@@ -114,8 +118,9 @@ Runs as a user-scope launchd service (`~/Library/LaunchAgents/homebrew.mxcl.newr
 
 ## Verify reporting (NerdGraph)
 ```bash
+source ~/data/config/load-secrets.sh
 curl -s -X POST https://api.eu.newrelic.com/graphql \
-  -H "API-Key: $(ssh svr002 grep ^NEW_RELIC_USER_API_KEY= ~/data/config/.secrets | cut -d= -f2)" \
+  -H "API-Key: $NEW_RELIC_USER_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"query":"{ actor { account(id: 4304361) { nrql(query: \"SELECT latest(timestamp) FROM SystemSample SINCE 5 minutes ago FACET hostname\") { results } } } }"}'
 ```

@@ -75,15 +75,17 @@ Two MCP servers are registered with Claude Code (user scope, in `~/.claude.json`
 ### unraid MCP
 [`jmagar/unraid-mcp`](https://github.com/jmagar/unraid-mcp), Docker container on Unraid.
 
-Deployment:
+Deployment (run from a host with secrets loaded — Mac or svr002):
 ```bash
-ssh svr001 "docker run -d --name=unraid-mcp --restart=unless-stopped \
+source ~/data/config/load-secrets.sh
+
+ssh svr001 docker run -d --name=unraid-mcp --restart=unless-stopped \
   -p 6970:6970 \
-  -e UNRAID_API_URL='http://192.168.1.200/graphql' \
-  -e UNRAID_API_KEY=\"\$(ssh svr002 grep ^UNRAID_API_KEY= ~/data/config/.secrets | cut -d= -f2)\" \
-  -e UNRAID_MCP_BEARER_TOKEN=\"\$(ssh svr002 grep ^UNRAID_MCP_BEARER_TOKEN= ~/data/config/.secrets | cut -d= -f2)\" \
+  -e UNRAID_API_URL=http://192.168.1.200/graphql \
+  -e UNRAID_API_KEY="$UNRAID_API_KEY" \
+  -e UNRAID_MCP_BEARER_TOKEN="$UNRAID_MCP_BEARER_TOKEN" \
   -e UNRAID_MCP_TRANSPORT=streamable-http \
-  ghcr.io/jmagar/unraid-mcp:latest"
+  ghcr.io/jmagar/unraid-mcp:latest
 ```
 
 - Unraid API key is generated in Unraid UI → Settings → Management Access → API Keys
@@ -103,12 +105,7 @@ Both endpoints are LAN-only. For use from the Mac off-network:
 - Cloudflare Tunnel via the existing svr001 tunnel (auth via Cloudflare Access)
 
 ## Secrets
-Canonical secret store: `~/data/config/.secrets` on svr002 (mode 600). Format is `KEY=value` per line. Fetch from any host via:
-```bash
-ssh svr002 "grep ^UNRAID_API_KEY= ~/data/config/.secrets | cut -d= -f2"
-```
-
-Known entries: `UNRAID_API_KEY`, `UNRAID_MCP_BEARER_TOKEN`, `PORTAINER_PASS`. This is a pragmatic placeholder — see [secrets-vault TODO in marketplace root] for plans to move to a proper Vaultwarden/SOPS-based store.
+Stored SOPS-encrypted in `~/data/config/.secrets.env`. Load via `source ~/data/config/load-secrets.sh` (see `skills/secrets/SKILL.md`). Relevant keys for this skill: `UNRAID_API_KEY`, `UNRAID_MCP_BEARER_TOKEN`.
 
 ## Related Skills
 - `skills/svr002/SKILL.md` — primary home server, secrets live here
