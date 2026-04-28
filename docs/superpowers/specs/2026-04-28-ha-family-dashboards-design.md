@@ -31,7 +31,7 @@ Two alternatives were considered and rejected:
 - **A: Single dashboard with view-level visibility filters** — rejected because the Fire tablet kiosk signs in as one HA user; visibility filters can't say "show on the wall, hide on Nicola's phone" without breaking phone usage.
 - **C: Single dashboard with browser_mod-driven auto-redirect per user** — rejected for fragility and the same kiosk-collision problem.
 
-**Authoring mode: YAML.** HA is switched into `lovelace.mode: yaml` so the four dashboards become git-tracked files we can template across.
+**Authoring mode: hybrid YAML.** The legacy default dashboard stays in `storage` mode (so existing setup is undisturbed). Our four new dashboards are registered with `mode: yaml` individually under `lovelace.dashboards.*` — they become git-tracked files we can template across, while the default dashboard remains UI-editable as a "tinker" surface for Nicola.
 
 **Escape hatch for Nicola:** a fifth dashboard called `personal` left in HA's default UI/storage mode. Nicola (or Dan) can experiment with custom cards there without touching the YAML-managed ones.
 
@@ -285,11 +285,11 @@ Before implementation can start:
 
 1. **HACS installed** — verify `/config/custom_components/hacs` exists on the HA VM. If not, install via standard HACS bootstrap.
 2. **Areas tagged on every controllable entity.** Audit the registry: each light/switch/scene must have an Area assigned. Areas needed: Lounge, Library, Kitchen, Dining, Hall, Landing, Master Bed, William, Guest, Office, Driveway, Chickens, Side Garden, Side Path, Doorstep.
-3. **`lovelace.mode: yaml`** registered in `configuration.yaml`:
+3. **Hybrid Lovelace mode** — default stays `storage`; four new dashboards registered with `mode: yaml`. In `configuration.yaml`:
 
    ```yaml
    lovelace:
-     mode: yaml
+     mode: storage   # default dashboard stays UI-editable; our 4 are yaml-mode below
      dashboards:
        nicola:  { mode: yaml, filename: dashboards/nicola.yaml,  title: Home,  icon: mdi:home,        show_in_sidebar: true,  require_admin: false }
        dan:     { mode: yaml, filename: dashboards/dan.yaml,     title: Power, icon: mdi:tools,       show_in_sidebar: true,  require_admin: false }
