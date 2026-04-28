@@ -1,0 +1,1 @@
+{ "name": "timescale", "version": "0.1.0", "description": "TimescaleDB on Unraid as the home metrics store (cf_*, ha_*) — pollers, schema, retention." }

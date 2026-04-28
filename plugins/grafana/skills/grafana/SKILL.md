@@ -217,6 +217,67 @@ Always wrap in the GraphQL envelope:
 { actor { account(id: 4304361) { nrql(query: "<NRQL>") { results } } } }
 ```
 
+## Dashboards
+
+| UID | Title | Default range | Refresh | Datasource(s) |
+|---|---|---|---|---|
+| `a500e9d5-d384-453d-8128-a8b55414dd89` | Home Infrastructure (NR) | now-1h | 30s | NerdGraph (Infinity) |
+| `cloudflare` | Cloudflare | now-3h | 1m | Timescale (Postgres) |
+| `home-assistant` | Home Assistant | now-24h | 1m | Timescale (Postgres) |
+
+## Postgres datasource — Grafana 11+ gotcha
+
+Grafana 11.x changed how the Postgres datasource reads its database name. The legacy `database` at the top level of the datasource JSON is no longer enough — it must **also** appear inside `jsonData`:
+
+```json
+{
+  "name": "Timescale (metrics)",
+  "type": "grafana-postgresql-datasource",
+  "url": "192.168.1.200:5432",
+  "user": "metrics",
+  "database": "metrics",
+  "jsonData": {
+    "sslmode": "disable",
+    "postgresVersion": 1600,
+    "timescaledb": true,
+    "database": "metrics"
+  },
+  "secureJsonData": { "password": "<from SOPS>" }
+}
+```
+
+Symptom when the second `database` is missing: panel shows red triangle + "You do not currently have a default database configured for this data source. Postgres requires a default database with which to connect."
+
+## Auth / session — token rotation on mobile
+
+If panels show "No data" with a warning triangle and Grafana logs show `[session.token.rotate] token needs to be rotated`, the browser session expired but the cached page is still showing. The fix is to **sign out + back in** OR run Grafana with longer session lifetimes:
+
+```bash
+-e GF_AUTH_LOGIN_MAXIMUM_INACTIVE_LIFETIME_DURATION=30d \
+-e GF_AUTH_LOGIN_MAXIMUM_LIFETIME_DURATION=90d \
+-e GF_AUTH_TOKEN_ROTATION_INTERVAL_MINUTES=1440 \
+-e GF_SECURITY_COOKIE_SAMESITE=lax
+```
+
+## Stat panel time-picker independence
+
+A stat panel with `format: time_series` is filtered by Grafana to rows inside the dashboard time range — so "Total today" using `WHERE time >= date_trunc('day', NOW())` returns 0 if the picker is set to "Last 5 min" before midnight. Use `format: table` and an explicit window:
+
+```json
+{ "format": "table", "rawQuery": true,
+  "rawSql": "SELECT SUM(requests) AS value FROM cf_zone_stats WHERE time >= date_trunc('day', NOW())" }
+```
+
+## Postgres / Timescale SQL patterns
+
+Comprehensive set lives in `skills/timescale/SKILL.md`. Key ones:
+
+- **Octopus monotonic counters** — `MAX(value) - MIN(value)` per bucket; never `last - first` (out-of-order inserts will flip sign).
+- **Cache hit ratio** — `100.0 * SUM(cached_requests)::float / NULLIF(SUM(requests), 0)`.
+- **Status-class stacked area** — `CONCAT((status_code/100)::text, 'xx') AS metric, SUM(requests) AS value` grouped by minute + class.
+- **Heatmap (hour-of-day)** — `time_bucket('1 hour', time)` plus heatmap panel `calculate: true`.
+- **Top-N delta vs yesterday** — `LAG(value)` window or two-window subquery + percent-change column.
+
 ## Related Skills
 - `skills/newrelic/SKILL.md` — NR account, license keys, agent installs
 - `skills/cloudflare/SKILL.md` — tunnel/DNS/Access API patterns
