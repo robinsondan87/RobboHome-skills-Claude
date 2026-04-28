@@ -224,6 +224,7 @@ Always wrap in the GraphQL envelope:
 | `a500e9d5-d384-453d-8128-a8b55414dd89` | Home Infrastructure (NR) | now-1h | 30s | NerdGraph (Infinity) |
 | `cloudflare` | Cloudflare | now-3h | 1m | Timescale (Postgres) |
 | `home-assistant` | Home Assistant | now-24h | 1m | Timescale (Postgres) |
+| `unifi` | UniFi | now-3h | 1m | Timescale (Postgres) |
 
 ## Postgres datasource — Grafana 11+ gotcha
 

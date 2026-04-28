@@ -32,6 +32,10 @@ ssh svr001 "docker exec -it -e PGPASSWORD='$TIMESCALE_PASS' timescaledb psql -U 
 | `cf_status_stats` | 1 min | 1 year | after 7d | `cf-poll.sh` (per-status-code) |
 | `cf_host_stats` | 1 min | 1 year | after 7d | `cf-poll.sh` (per-subdomain) |
 | `ha_state_history` | per state-change | 1 year | after 7d | `ha-poll.sh` (HA `/api/states`) |
+| `unifi_device_stats` | 1 min | 1 year | after 7d | `unifi-poll.sh` (`/stat/device`) |
+| `unifi_client_stats` | 1 min | 90 days | after 3d | `unifi-poll.sh` (`/stat/sta`) |
+| `unifi_site_stats` | 1 min | 1 year | after 7d | `unifi-poll.sh` (`/stat/health`) |
+| `unifi_speedtest` | per test (~1/day) | 2 years | none | `unifi-poll.sh` (`archive.speedtest`) |
 
 All hypertables: `chunk_time_interval => '1 day'`, `compress_segmentby` set to the most-faceted text column.
 
@@ -56,6 +60,15 @@ Hits Cloudflare's GraphQL Analytics endpoint with **four sub-queries in one POST
 - countries / statuses / hosts (faceted by `clientCountryName` / `edgeResponseStatus` / `clientRequestHTTPHost`)
 
 Uses `httpRequestsAdaptiveGroups` (works on **CF Free plan**, 1-minute granularity). The Pro-only `httpRequests1mGroups` would simplify the JSON but we don't have Pro. `httpRequests1hGroups` (free, hourly) is no longer used.
+
+### `unifi-poll.sh`
+Authenticates to the UniFi controller (UCG Ultra at `192.168.1.1`) using **legacy cookie + CSRF** (creds: `UNIFI_NETWORK_USERNAME` / `UNIFI_NETWORK_PASSWORD` from SOPS). The Integration API key path doesn't expose enough — cookie path gives you `stat/sta`, `stat/device`, `stat/health`, and `stat/report/archive.speedtest`. Captures:
+- Per-device snapshot (CPU, memory, uptime, RX/TX bytes, num connected stations)
+- Per-client snapshot (hostname, AP/SSID, RSSI, link rate, RX/TX bytes)
+- Site-level health (subsystem statuses, WAN throughput, latency)
+- Speedtest history (idempotent on `_id`, last 7 days each poll — back-fills automatically)
+
+**DPI does not work on UCG Ultra** (and other consumer UDM/UDR/UCG-Lite). The endpoints respond `rc: ok` but with empty data — no per-app DPI ASIC. Don't waste time on `/stat/dpi`. Get DPI-equivalent data from PiHole/AdGuard logs instead.
 
 ### `ha-poll.sh`
 Pulls `/api/states`, filters to interesting domains (sensor / binary_sensor / switch / light / climate / number / input_* / media_player / device_tracker / person / lock / cover / fan / weather / sun / zone / counter / select), inserts each row with `state_text`, `state_numeric` (parsed if state is numeric), and `unit`. `ON CONFLICT (time, entity_id) DO NOTHING` so re-polls don't duplicate.
