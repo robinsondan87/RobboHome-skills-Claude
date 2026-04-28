@@ -118,7 +118,7 @@ Designed for **iPhone portrait** as the primary form factor.
 
 | Tile | Card type | Source entities | Behaviour |
 |---|---|---|---|
-| Chips bar | `mushroom-chips-card` (entity / template chips) | `person.dan`, `person.nicola`, `input_text.placeholder_william_status` (template), `weather.forecast_home`, `binary_sensor.doorbell_camera_motion`, `climate.fire` | Tap chip → entity "More info" sheet |
+| Chips bar | `mushroom-chips-card` (entity / template chips) | `person.dan`, `person.nicola`, `sensor.blood_sugar` (William's BG via Nightscout — Track 1.5 polish), `weather.forecast_home`, `binary_sensor.doorbell_camera_motion`, `climate.fire` | Tap chip → entity "More info" sheet |
 | Energy NOW | `mushroom-template-card` + `mini-graph-card` | `sensor.electricity_cost_rate`, `sensor.electricity_today`, `binary_sensor.import_rising_fast` | Tap → "More" tab Energy detail |
 | Weather + Bins | `mushroom-template-card` | `weather.forecast_home`, `calendar.stafford_borough_council` (next event) | Tap weather → forecast popup; tap bin → calendar |
 | Laundry | `mushroom-template-card` | `binary_sensor.washing_machine_running`, `binary_sensor.tumble_dryer_running`, `input_select.laundry_status` | State changes when running; tap → laundry detail page |
@@ -128,11 +128,13 @@ Designed for **iPhone portrait** as the primary form factor.
 
 ### William placeholder strategy
 
-Until `person.william` exists, the "Will–" chip uses `input_text.placeholder_william_status` showing `–`. When William's onboarded:
+Until `person.william` exists, the "Will" chip shows William's **live BG from Nightscout** (`sensor.blood_sugar`, mg/dL → mmol/L converted, with trend arrow and red/orange/green colour by range). When William's onboarded:
 
 1. Add him as an HA Person entity (William iPad → device tracker; later Pixel 8a Companion app)
-2. Re-point the chip in `lovelace_includes/chips_status.yaml` from `input_text.placeholder_william_status` → `person.william`
+2. Add a separate "Will home/away" chip alongside the BG chip in `lovelace_includes/chips_status.yaml` (or merge presence + BG into one rich chip)
 3. Done — the shared chip definition is the only edit; all four dashboards update.
+
+The legacy `input_text.placeholder_william_status` helper is no longer used by any dashboard; safe to delete from Helpers when convenient.
 
 ## 5. Dan's "Power" dashboard
 
@@ -158,7 +160,9 @@ The contents of Energy / Volvo / Media / System tabs are sketched at the tab-lev
 - 📚 **School** — calendar for school events, today's lessons, homework reminder
 - 🤖 **Agent** — opens william-agent in WhatsApp via deep link
 
-**Hard exclusions** (deliberately *not* on William's dashboard): no cameras, no door lock, no heating control, no admin/automation editing, no other people's rooms, **no Nightscout BG tile by default** — that lives only on Dan's phone unless Dan explicitly opts in.
+**Hard exclusions** (deliberately *not* on William's dashboard): no cameras, no door lock, no heating control, no admin/automation editing, no other people's rooms.
+
+**Nightscout BG visibility (revised 2026-04-28 during Track 1.5):** William's live BG is now shown on **all four** dashboards — Nicola's Home chip bar, Dan's Power chip bar, the Kiosk wall view, and as the headline card on William's own dashboard. Originally the spec excluded BG from family-visible surfaces; the family chose to make it visible everywhere so anyone walking past the kiosk or glancing at a phone can see William's status. The HA `nightscout` core integration is the data source, pointed at `https://william.eu.nightscoutpro.com` (public read, no auth). Display unit is mmol/L (computed from the integration's native mg/dL).
 
 ## 7. Kiosk dashboard (Fire tablet, wall-mounted, future)
 
@@ -349,5 +353,5 @@ Track 1 is "done" when:
 - **Smart lock choice** (Track 4) — to enable Goodnight's lock step. Options: Aqara U200, Yale Linus, Aqara A100 Zigbee. TBD when hardware roadmap is brainstormed.
 - **TRV choice** (Track 4) — to make the Heating tile actually heat the house and not just toggle the fireplace. Aqara, Sonoff, Tado all candidates.
 - **Wyoming voice satellites** (Track 3 + 4) — local voice in addition to / replacing Alexa. Decision deferred until Track 3.
-- **Nightscout integration as an HA sensor** — currently only via OpenClaw william-agent. If we want a BG tile on Dan's phone (and only Dan's phone) we'll add the `nightscout` HA integration. Track 1.5 follow-on if Dan wants this.
+- ~~**Nightscout integration as an HA sensor** — currently only via OpenClaw william-agent. If we want a BG tile on Dan's phone (and only Dan's phone) we'll add the `nightscout` HA integration. Track 1.5 follow-on if Dan wants this.~~ **Done in Track 1.5 on 2026-04-28.** Integration installed; `sensor.blood_sugar` lives on all four dashboards (chip bar on Nicola/Dan/Kiosk, headline card on William's). See §6.
 - **Energy dashboard polish** on Dan's view — sparklines exist; full Track 1.5 spec for the Energy tab content.
