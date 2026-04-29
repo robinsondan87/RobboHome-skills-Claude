@@ -151,7 +151,17 @@ Cloud's "Alexa entities" UI (Settings → HA Cloud → Alexa → Manage entities
 
 Climate and sensor reads are now possible — "Alexa, fire on", "Alexa, what's William's blood sugar", "Alexa, set office to 21".
 
-### 5.2 Morning macro Kitchen Echo fix
+### 5.2 Morning macro Kitchen Echo fix (resolved during Track 3 implementation)
+
+**Final pattern (BBC Radio 1, 30 min):** scripts expose to Alexa as Scenes (Alexa.SceneController) which can be *activated by* a Routine but cannot *trigger* one. Bridge via `input_boolean.morning_alexa_radio_trigger`:
+
+1. `input_boolean.morning_alexa_radio_trigger` defined in `configuration.yaml` and exposed to Alexa (appears as a "Contact Sensor" in Alexa's UI)
+2. `script.morning` toggles the boolean ON, waits 2 s, toggles OFF — gives Alexa enough time to see the Open event
+3. Alexa Routine: *When Morning Alexa Radio opens → Play BBC Radio 1 on TuneIn for 30 minutes on Kitchen Echo Show*
+
+The original §5.2 below documents the legacy approach (TTS announce as a fallback when no Routine bridge existed). Kept as reference.
+
+#### 5.2.bis Legacy fallback (TTS announce)
 
 Currently `script.morning` step 2 calls `media_player.kitchen_echo` which doesn't exist (the new `alexa_devices` integration doesn't expose media players). Replacement using `notify.kitchen_echo_show_announce`:
 
