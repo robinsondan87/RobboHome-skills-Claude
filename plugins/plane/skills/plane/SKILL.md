@@ -15,6 +15,7 @@ description: Self-hosted Plane (project tracker) on svr002 — RobboHome workspa
 | Stack | `~/data/plane-selfhost/plane-app/` on svr002 (12 containers under `plane-app-*`) |
 | Workspace | `RobboHome` (slug: `robbohome`) |
 | Primary project | **Infrastructure** (identifier `INFRA`, id `ba6c47c8-8e65-4146-bd75-ac58e27288bb`) |
+| Secondary project | **Loop Coach** (identifier `LC`, id `5aa10b10-020f-4432-9fd1-736c0884fcea`) — diabetes/insulin profile experiments |
 | Auth | first-run admin: `Robinsondan87@gmail.com` (creds in SOPS as `PLANE_ADMIN_EMAIL` / `PLANE_ADMIN_PASS`) |
 
 Stack management lives in the `docker-management` skill — see that for the deploy + the two startup gotchas (DATABASE_URL fallback, misleading "failed to start").
@@ -53,7 +54,9 @@ curl -s -H "x-api-key: $PLANE_API_KEY" \
   "$PLANE_URL/api/v1/workspaces/$PLANE_WORKSPACE_SLUG/projects/<project_id>/issues/?state__group=backlog,unstarted,started" | jq .
 ```
 
-The Infrastructure project's id is `ba6c47c8-8e65-4146-bd75-ac58e27288bb`. Other projects: list via the projects/ endpoint.
+Project ids: Infrastructure = `ba6c47c8-8e65-4146-bd75-ac58e27288bb`, Loop Coach = `5aa10b10-020f-4432-9fd1-736c0884fcea`. List the rest via the projects/ endpoint.
+
+**SSL gotcha for Python migration scripts**: `https://plane.robbohome.com` goes through Cloudflare's edge cert; macOS Python 3.13's bundled CA store can fail verification. Use the **LAN URL** `http://192.168.1.17:18080/api/v1` from the Mac for migration scripts, not `$PLANE_URL`. Curl works either way (uses system CA chain).
 
 ## When to add a Plane issue vs do it inline
 
