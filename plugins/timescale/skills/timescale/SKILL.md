@@ -36,6 +36,7 @@ ssh svr001 "docker exec -it -e PGPASSWORD='$TIMESCALE_PASS' timescaledb psql -U 
 | `unifi_client_stats` | 1 min | 90 days | after 3d | `unifi-poll.sh` (`/stat/sta`) |
 | `unifi_site_stats` | 1 min | 1 year | after 7d | `unifi-poll.sh` (`/stat/health`) |
 | `unifi_speedtest` | per test (~1/day) | 2 years | none | `unifi-poll.sh` (`archive.speedtest`) |
+| `media_app_stats` | 1 min | 1 year | after 7d | `media-poll.sh` (Sonarr/Radarr/Prowlarr/Jellyfin/Jellyseerr/ABS) |
 
 All hypertables: `chunk_time_interval => '1 day'`, `compress_segmentby` set to the most-faceted text column.
 
@@ -60,6 +61,22 @@ Hits Cloudflare's GraphQL Analytics endpoint with **four sub-queries in one POST
 - countries / statuses / hosts (faceted by `clientCountryName` / `edgeResponseStatus` / `clientRequestHTTPHost`)
 
 Uses `httpRequestsAdaptiveGroups` (works on **CF Free plan**, 1-minute granularity). The Pro-only `httpRequests1mGroups` would simplify the JSON but we don't have Pro. `httpRequests1hGroups` (free, hourly) is no longer used.
+
+### `media-poll.sh`
+Polls 6 *arr-stack apps + Jellyfin every minute, all on `192.168.1.200`. Wide-table writes to `media_app_stats(ts, app, metric, label, value_num)` — keeps cardinality low by aggregating per-state rather than per-title:
+- **Sonarr / Radarr** — series/movie counts, episodes-on-disk, missing, queue (warnings + errors), per-root-folder diskspace.
+- **Prowlarr** — per-indexer queries, grabs, failures, avg response time (label=indexer name).
+- **Jellyfin** — `/Items/Counts` (movies/series/episodes/boxsets/etc), active sessions, transcoding sessions, connected clients.
+- **Jellyseerr** — `/api/v1/request/count` (total/movie/tv/pending/approved/processing/available/declined).
+- **Audiobookshelf** — per-library items/duration/size + open sessions (label=library name).
+
+Each app's auth differs:
+- *arr / Jellyseerr → `X-Api-Key` header
+- Jellyfin → `Authorization: MediaBrowser Token=…` header
+- ABS → `Authorization: Bearer …` header
+- qBittorrent (TODO) → `POST /api/v2/auth/login` with cookie jar
+
+Wrap each app block in `if [ -n "$URL" ] && [ -n "$KEY" ]` so partial creds don't crash the whole poll.
 
 ### `unifi-poll.sh`
 Authenticates to the UniFi controller (UCG Ultra at `192.168.1.1`) using **legacy cookie + CSRF** (creds: `UNIFI_NETWORK_USERNAME` / `UNIFI_NETWORK_PASSWORD` from SOPS). The Integration API key path doesn't expose enough — cookie path gives you `stat/sta`, `stat/device`, `stat/health`, and `stat/report/archive.speedtest`. Captures:
