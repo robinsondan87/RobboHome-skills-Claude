@@ -1,6 +1,6 @@
 # Home Assistant Track 3 — Reliability, Voice, Presence
 
-**Status:** Draft, brainstormed 2026-04-29
+**Status:** ✅ DONE end-to-end on 2026-04-29 (same-day brainstorm + implementation). All three sub-tracks shipped and verified.
 **Track:** 3 of 4 in the broader "Home Assistant overhaul" initiative (see `~/.claude/TODO.md`)
 **Owner:** Dan Robinson
 **Authoring session:** 2026-04-29
@@ -314,6 +314,14 @@ Before implementation can start:
 - William's LED strip — separately TODO'd (will wire in once user adds it)
 - Tablet / wall-mount kiosk hardware — Track 4 territory
 - Smart locks, TRVs, additional cameras — Track 4 territory
+
+## 10b. Implementation notes / gotchas observed during landing
+
+- **Cloud Backup agent requires HA Core restart.** Toggling Alexa/Cloud prefs alone doesn't make the `cloud.cloud` backup agent appear. After enabling subscription + Alexa/Remote, restart HA core (`POST /api/services/homeassistant/restart`) — cloud component re-init then registers the backup agent. Without restart, only `hassio.local` and any network-share agents show up.
+- **Unraid Docker template "extra paths" don't always persist.** When you click Edit on a container in Unraid Docker UI and change one config (e.g. add a new bind mount), Unraid sometimes drops *previously-added* path bindings that weren't in the original template (only the template's `<Config Type="Path">` entries persist by default). Workaround: after any Edit, immediately verify all previous binds are still listed via `docker inspect $cid --format "{{range .Mounts}}{{.Source}} → {{.Destination}}{{println}}{{end}}"`. If any are missing, re-add them in the same Edit pass.
+- **Unraid UI input has trailing-space hazard.** Path/Container Path text fields silently accept trailing whitespace, which becomes part of the actual bind mount destination. Always trim. Symptom: `docker exec $cid ls /your-path` returns "No such file or directory" even though `docker inspect` shows the mount. Fix is to edit the template XML directly: `sed -i 's|Target="/your-path "|Target="/your-path"|g' /boot/config/plugins/dockerMan/templates-user/my-syncthing.xml` then recreate container.
+- **HA scripts expose to Alexa as `Alexa.SceneController` (not switches).** This means `script.morning` etc. show up in the Alexa app's **Scenes** section, not Devices. They can be *activated by* a Routine but *cannot trigger* one. To trigger a Routine from a script firing, bridge through an `input_boolean` (which exposes to Alexa as a contact sensor — Routine fires on "opens"). Pattern is `script.morning → input_boolean.turn_on → 2-sec delay → input_boolean.turn_off` so the boolean blip is detectable by Alexa cloud.
+- **Nabu Casa exposure: per-entity `should_expose` is the master gate.** `alexa_default_expose` controls only the default for unset entities. To strictly limit to a curated list: set `should_expose: True` for each entity in the keep-list, then `should_expose: False` for all others. Use WS `homeassistant/expose_entity` with `assistants: ['cloud.alexa']`. Alexa filters discovery against per-entity flags; `cloud/alexa/entities` shows capabilities for *all* entities regardless and is misleading — actual discovery uses the should_expose gate.
 
 ## 11. Open questions / future work
 
