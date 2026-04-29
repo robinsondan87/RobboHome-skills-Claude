@@ -84,7 +84,9 @@ Each app's auth differs:
 - *arr / Jellyseerr → `X-Api-Key` header
 - Jellyfin → `Authorization: MediaBrowser Token=…` header
 - ABS → `Authorization: Bearer …` header
-- qBittorrent (TODO) → `POST /api/v2/auth/login` with cookie jar
+- qBittorrent → `POST /api/v2/auth/login` with `username=…&password=…` form body + `Referer` header. Returns `Ok.` on success and sets a session cookie. Captures: global dl/up speed, total library size, downloaded/uploaded totals (for share ratio), torrents-by-state buckets (downloading/stalledDL/uploading/seeding/error/etc).
+
+**qBittorrent password reset** if locked out: stop container, edit `/mnt/user/appdata/qbittorrent/qBittorrent/qBittorrent.conf`, replace `WebUI\Password_PBKDF2=...` with the well-known `adminadmin` hash (`@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)`), start container. Login with existing username + password `adminadmin`.
 
 Wrap each app block in `if [ -n "$URL" ] && [ -n "$KEY" ]` so partial creds don't crash the whole poll.
 
