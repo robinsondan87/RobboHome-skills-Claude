@@ -21,14 +21,14 @@ Goals, in priority order:
 
 | Decision | Choice | Why |
 |---|---|---|
-| Remote access | **Stay on Tailscale** (no Nabu Casa) | Family doesn't want subscriptions; Tailscale already covers all fleet machines and works for HA Companion remote access |
-| Alexa voice control | **`emulated_hue` (DIY, free)** | No subscription; LAN-only is fine; covers lights + scenes which is 80% of family use |
+| Remote access + Alexa + cloud backup | **Nabu Casa subscription (~£5/mo)** | One toggle covers polished Companion app remote access, official Alexa Smart Home Skill, and cloud backup. Light touch over three otherwise-DIY problems. |
 | Local voice stack | **Skip** (no Wyoming/Whisper/Piper) | Family lives on Alexa already; revisit only if Alexa proves limiting |
 | Automation engine | **Stay native HA YAML** | 50 automations + 16 scripts work fine; no complexity problem |
 | Notifier | **Mobile push + Alexa announce only** | No need for SMS/email/chat; OpenClaw agents handle their own |
-| Backup strategy | **Three layers: local + Unraid syncthing chain + Google Drive** | Defence in depth for free; Drive cloud agent is the off-LAN copy |
+| Backup strategy | **Three layers: local + Unraid syncthing chain + Nabu Casa Cloud Backup** | Defence in depth; Nabu Casa Cloud is the off-LAN copy (no separate Google Drive add-on needed) |
 | Config-as-code | **Auto-commit + push to private GitHub** | Full edit history; `/config/.git` already initialised |
 | Presence hardware | **Single FP2 pilot in Dan's office** | Validate value before scaling |
+| Tailscale | **Keep** | Still useful for the rest of the fleet (svr001/002/003, vmi3091030); just not the primary HA remote-access path anymore |
 
 ## 3. Sub-track decomposition
 
@@ -36,8 +36,8 @@ Three independent specs, each with its own acceptance criteria. Order: 3a → 3b
 
 | Sub-track | Scope summary |
 |---|---|
-| **3a — Reliability** | HA backups → Unraid network share + Google Drive cloud agent. `/config/.git` auto-commit + push to GitHub. |
-| **3b — Voice (Alexa)** | `emulated_hue` integration so Echos can control lights + scenes + macro scripts. Morning macro Kitchen Echo step fixed to use `notify.kitchen_echo_show_announce`. |
+| **3a — Reliability** | HA backups → Unraid network share + Nabu Casa Cloud Backup. `/config/.git` auto-commit + push to GitHub. |
+| **3b — Voice (Alexa) + Remote access** | Nabu Casa subscription enabled. Alexa Smart Home Skill linked → Echos can control lights/scenes/scripts/climate/sensors. HA Companion app remote access via Cloud. Morning macro Kitchen Echo step fixed to use `notify.kitchen_echo_show_announce`. |
 | **3c — Presence pilot** | Deploy FP2 in Dan's office. Three starter presence automations (office on, office off, kitchen night-light via Echo motion). |
 
 ## 4. Sub-track 3a — Reliability
@@ -47,11 +47,11 @@ Three independent specs, each with its own acceptance criteria. Order: 3a → 3b
 ```
         HA daily auto-backup
                 │
-        ┌───────┼───────────┐
-        ▼       ▼           ▼
-  /backup/   /share/     Google Drive
-  (HAOS)     unraid      (Backup add-on)
-             backup
+        ┌───────┼───────────────┐
+        ▼       ▼               ▼
+  /backup/   /share/        Nabu Casa
+  (HAOS)     unraid         Cloud Backup
+             backup         (off-LAN copy)
               │
               ▼
         syncthing on Unraid
@@ -60,13 +60,13 @@ Three independent specs, each with its own acceptance criteria. Order: 3a → 3b
             svr003
 ```
 
-Three geographic copies of every backup: HAOS partition, Unraid + svr003 (LAN-twinned), Google Drive (cloud). The user's existing syncthing chain on Unraid is reused — no new sync infrastructure needed.
+Three geographic copies of every backup: HAOS partition, Unraid + svr003 (LAN-twinned), Nabu Casa Cloud (off-LAN). The user's existing syncthing chain on Unraid is reused — no new sync infrastructure needed. Nabu Casa Cloud Backup is included with the subscription, no extra add-on.
 
 ### 4.2 Components
 
 1. **HAOS network storage mount** — *Settings → System → Storage → Add network storage* with a CIFS/SMB share to Unraid (e.g. `\\192.168.1.200\backup_ha`). HAOS automatically exposes mounted shares as backup *agents*.
-2. **Backup agent configuration** — daily auto-backup writes to both `local` and the new network share. Retention: 7 local, 14 network share.
-3. **Google Drive Backup add-on** — community add-on at `https://github.com/sabeechen/hassio-google-drive-backup`. Installs alongside; runs daily. Retention: 30 days. User authenticates once via OAuth.
+2. **Backup agent configuration** — daily auto-backup writes to all three agents: `local`, the new network share, and Nabu Casa Cloud. Retention: 7 local, 14 network share, default cloud retention (Nabu Casa-managed).
+3. **Nabu Casa subscription** — *Settings → Home Assistant Cloud → Sign up / Sign in*. Cloud Backup is enabled per dashboard once the subscription is active. No add-on installation needed.
 4. **Syncthing** on Unraid (already running) carries `/mnt/user/backup_ha/` to svr003. No action needed.
 
 ### 4.3 Config-as-code: auto-commit + push
@@ -108,34 +108,31 @@ Manual commits still work; auto-commit catches what humans forget.
 
 ### 4.5 3a Acceptance criteria
 
-- [ ] HA daily auto-backup writes to both `local` and the Unraid network share (verify in HA backup logs)
-- [ ] Google Drive Backup add-on is installed, authenticated, and uploads daily backups
+- [ ] HA daily auto-backup writes to all three agents: `local`, Unraid network share, Nabu Casa Cloud (verify in HA backup logs / Cloud dashboard)
+- [ ] Nabu Casa subscription is active and Cloud Backup is enabled
 - [ ] Syncthing on Unraid carries new HA backups to svr003 (verify by listing svr003's backup dir)
 - [ ] `/share/auto_commit.sh` runs every 15 min via cron, commits any pending `/config/` changes, pushes to GitHub
 - [ ] `github.com/robinsondan87/robbohome-ha-config` private repo exists and shows recent commits
 - [ ] `.gitignore` excludes secrets, `.storage/`, db files, logs
 
-## 5. Sub-track 3b — Voice (Alexa via emulated_hue)
+## 5. Sub-track 3b — Voice (Alexa via Nabu Casa) + Remote access
 
 ### 5.1 Configuration
 
-In `/config/configuration.yaml`:
+Nabu Casa subscription enables three things at once: HA Cloud (remote Companion app), Cloud Backup (§4), and the official **Alexa Smart Home Skill**. No `emulated_hue` needed; full support for lights, scenes, scripts, climate, and sensor reads via voice.
 
-```yaml
-emulated_hue:
-  host_ip: 192.168.1.151
-  listen_port: 80
-  expose_by_default: false
-  exposed_domains:
-    - light
-    - switch
-    - scene
-    - script
-```
+**Setup:**
 
-Per-entity exposure via `customize.yaml` (explicit opt-in only):
+1. **Subscribe** — *Settings → Home Assistant Cloud → Start your free trial / Sign in* (1-month free trial, then ~£5/mo).
+2. **Enable Alexa** — within Cloud settings, toggle on **Alexa**. HA Cloud generates a per-instance OAuth endpoint.
+3. **Link the skill** — in the Alexa app on Dan's phone, *Skills & Games → Search "Home Assistant Smart Home" → Enable to use*. Sign in with the Nabu Casa account, accept HA permissions.
+4. **Discover devices** — Alexa app *Devices → Add Device → Other → Discover*. All exposed HA entities appear.
 
-| Entity | `emulated_hue_name` Alexa hears |
+### 5.2 Entity exposure list
+
+Cloud's "Alexa entities" UI (Settings → HA Cloud → Alexa → Manage entities) is per-entity opt-in. v1 list:
+
+| Entity | Spoken-name override |
 |---|---|
 | `light.lounge_group` | "Lounge lights" |
 | `light.kitchen_group` | "Kitchen lights" |
@@ -148,8 +145,11 @@ Per-entity exposure via `customize.yaml` (explicit opt-in only):
 | `script.morning` | "Morning" |
 | `script.movie` | "Movie" |
 | `scene.lounge_movie` | "Movie scene" |
+| `climate.fire` | "Fire" |
+| `climate.office_aircon` | "Office air conditioning" |
+| `sensor.blood_sugar` | "William's blood sugar" |
 
-After config save + HA restart → Alexa app → Devices → Add Device → "Other" / "Hue" → Echos discover HA-as-Hue. LAN-only.
+Climate and sensor reads are now possible — "Alexa, fire on", "Alexa, what's William's blood sugar", "Alexa, set office to 21".
 
 ### 5.2 Morning macro Kitchen Echo fix
 
@@ -173,10 +173,14 @@ BBC R4 playback is parked as a TODO (separate Voicemonkey bridge work documented
 
 ### 5.3 3b Acceptance criteria
 
-- [ ] `emulated_hue` integration loaded with explicit per-entity exposure list
-- [ ] All 6 room light groups + Office + 3 macro scripts + Movie scene discoverable by Alexa
+- [ ] Nabu Casa subscription active; HA Cloud + Alexa toggles on
+- [ ] HA Companion app on Dan's + Nicola's iPhones works off-LAN via Cloud (no Tailscale needed)
+- [ ] Alexa Smart Home Skill linked in the Alexa app; HA discovered as a hub
+- [ ] All entities in the §5.2 exposure list discoverable
 - [ ] "Alexa, turn off lounge lights" works on at least one Echo
 - [ ] "Alexa, goodnight" fires `script.goodnight`
+- [ ] "Alexa, fire on" toggles `climate.fire` (Nabu Casa-only capability — verify)
+- [ ] "Alexa, what's William's blood sugar" returns the value (Nabu Casa-only — verify)
 - [ ] Morning macro Kitchen Echo TTS announcement plays cleanly with weather + bin-day data
 
 ## 6. Sub-track 3c — Presence pilot
@@ -278,21 +282,21 @@ These are usable today, no new hardware needed.
 | FP2 false-positives in low light | Lux gate at <50 mitigates; iterate after a week |
 | GitHub deploy key compromised | Private repo limits blast radius; rotate via deploy-key page |
 | Auto-commit script masks accidental edits to `secrets.yaml` | `.gitignore` audit prevents commit; secrets file is never staged |
-| Port 80 already bound on HAOS (rare — but Pi-hole / adguard add-ons can do this) | Configure `emulated_hue` with `listen_port: 8300, advertise_port: 80, upnp_bind_multicast: true` and rely on UPnP for Echo discovery. Most Echos honour this; if not, run emulated_hue in a separate container or change Pi-hole's port. |
+| Nabu Casa subscription lapses (forgotten payment) | Local + Unraid backups still work; Cloud Backup paused but no data loss. Alexa skill stops functioning; emulated_hue remains as documented fallback path (§11). |
 
 ## 9. Implementation prerequisites
 
 Before implementation can start:
 
 1. **Unraid `backup_ha` Samba share** must exist and be writable from HAOS network. Test with `smbclient -L //192.168.1.200/backup_ha`.
-2. **Google account** for the Backup add-on OAuth.
+2. **Nabu Casa account** (free trial signup, payment method ready for the £5/mo).
 3. **GitHub `gh` CLI authenticated** as `robinsondan87` for repo create.
 4. **Aqara FP2** physically at hand and powered.
 
 ## 10. Out of scope
 
-- haaska upgrade — separately TODO'd
-- BBC R4 playback in Morning macro — Voicemonkey bridge separately TODO'd
+- emulated_hue / haaska — superseded by Nabu Casa Alexa Skill. Documented in §11 as fallback path if Nabu Casa is ever cancelled.
+- BBC R4 playback in Morning macro — Voicemonkey bridge separately TODO'd (Nabu Casa's Alexa Skill is HA→Alexa direction, doesn't expose Echo media playback to HA)
 - Wyoming/Whisper/Piper local voice — explicitly skipped
 - NodeRED/Pyscript/AppDaemon — explicitly skipped
 - Email / SMS / chat notifiers — explicitly skipped
@@ -303,7 +307,7 @@ Before implementation can start:
 
 ## 11. Open questions / future work
 
-- **Voicemonkey BBC R4 bridge** — TODO. Trigger via HA webhook → Alexa Routine plays radio.
-- **emulated_hue → haaska upgrade** — TODO. When family hits limits of emulated_hue (climate via voice, sensor reads, full HA service surface).
+- **Voicemonkey BBC R4 bridge** — TODO. Trigger via HA webhook → Alexa Routine plays radio. (Nabu Casa's Alexa Skill doesn't help here — that's HA→Alexa control, not Echo media playback exposed to HA.)
 - **More presence devices** — depends on FP2 office pilot's value over the next 1-2 weeks.
 - **Office light group entity** — minor cleanup; currently tile_room_lights references a single bulb (`light.office_front_1`).
+- **Fallback path if Nabu Casa is cancelled** — `emulated_hue` for Alexa control + Tailscale-only for remote access + Google Drive Backup add-on. All three were the originally-specced DIY paths and remain documented patterns to fall back to. No design work required to revert.
