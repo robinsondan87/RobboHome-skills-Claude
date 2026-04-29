@@ -226,6 +226,7 @@ Always wrap in the GraphQL envelope:
 | `home-assistant` | Home Assistant | now-24h | 1m | Timescale (Postgres) |
 | `unifi` | UniFi | now-3h | 1m | Timescale (Postgres) |
 | `media` | Media stack | now-24h | 1m | Timescale (Postgres) |
+| `unraid` | Unraid | now-24h | 1m | Timescale (Postgres) |
 
 ## Postgres datasource — Grafana 11+ gotcha
 

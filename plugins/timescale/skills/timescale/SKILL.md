@@ -37,6 +37,9 @@ ssh svr001 "docker exec -it -e PGPASSWORD='$TIMESCALE_PASS' timescaledb psql -U 
 | `unifi_site_stats` | 1 min | 1 year | after 7d | `unifi-poll.sh` (`/stat/health`) |
 | `unifi_speedtest` | per test (~1/day) | 2 years | none | `unifi-poll.sh` (`archive.speedtest`) |
 | `media_app_stats` | 1 min | 1 year | after 7d | `media-poll.sh` (Sonarr/Radarr/Prowlarr/Jellyfin/Jellyseerr/ABS) |
+| `unraid_array` | 1 min | 2 years | after 7d | `unraid-poll.sh` (GraphQL `array.parityCheckStatus`) |
+| `unraid_disk` | 1 min | 90 days | after 7d | `unraid-poll.sh` (GraphQL `array.disks` + `parities` + `caches`) |
+| `unraid_notifications` | event | none | none | `unraid-poll.sh` (GraphQL `notifications.list`, idempotent on `notif_id`) |
 
 All hypertables: `chunk_time_interval => '1 day'`, `compress_segmentby` set to the most-faceted text column.
 
@@ -61,6 +64,13 @@ Hits Cloudflare's GraphQL Analytics endpoint with **four sub-queries in one POST
 - countries / statuses / hosts (faceted by `clientCountryName` / `edgeResponseStatus` / `clientRequestHTTPHost`)
 
 Uses `httpRequestsAdaptiveGroups` (works on **CF Free plan**, 1-minute granularity). The Pro-only `httpRequests1mGroups` would simplify the JSON but we don't have Pro. `httpRequests1hGroups` (free, hourly) is no longer used.
+
+### `unraid-poll.sh`
+Polls the Unraid 7.2 GraphQL endpoint at `http://192.168.1.200/graphql` (auth: `x-api-key: $UNRAID_API_KEY`). One single GraphQL doc fetches array+parityCheck, all disks (data+parity+cache via separate top-level fields, joined client-side), and the notifications list.
+
+**Field naming on Unraid 7.2** (Network 10.x): the parity status is at `array.parityCheckStatus` (not `array.parityCheck`). Disks are at `array.disks` (data), `array.parities` (parity), `array.caches` (cache pool) — all separate arrays you have to concat. Each disk's temp comes from the controller's cached value, so polling does **not** wake spun-down disks (Unraid returns `temp: null` when `isSpinning: false`).
+
+`notifications.list(filter: {limit: N, offset: 0, type: UNREAD})` requires a non-null filter argument — easy to miss. Idempotent insert on `(host, notif_id)` so the same notification doesn't duplicate across polls.
 
 ### `media-poll.sh`
 Polls 6 *arr-stack apps + Jellyfin every minute, all on `192.168.1.200`. Wide-table writes to `media_app_stats(ts, app, metric, label, value_num)` — keeps cardinality low by aggregating per-state rather than per-title:
