@@ -4,32 +4,39 @@ description: openclaw-update skill for RobboHome automation.
 
 # Skill: OpenClaw Update & Backup
 
-Covers: checking for updates, installing, verifying, backing up config to
-GitHub, and restoring from catastrophic failure.
+Covers: checking for updates, installing, verifying, backing up, and restoring from catastrophic failure.
 
-**IMPORTANT: Always take a local backup before any config change or update.**
+**IMPORTANT: Always take a backup before any config change or update.**
 
 ---
 
-## Local quick-backup (run before ANY config change or update)
+## Backup (run before ANY config change or update)
 
-Creates a timestamped snapshot of `~/.openclaw` in `~/backups/openclaw/`.
-Fast, local, no network required. Do this first — every time.
+One parametrised script handles everything — same script that nightly cron uses, so manual and scheduled paths can never drift.
 
 ```bash
-STAMP=$(date +%Y%m%d-%H%M%S)
-DEST=~/backups/openclaw/$STAMP
-mkdir -p "$DEST"
-cp ~/.openclaw/openclaw.json "$DEST/" 2>/dev/null || true
-cp ~/.openclaw/secrets.json  "$DEST/" 2>/dev/null || true
-cp ~/.openclaw/cron/jobs.json "$DEST/cron-jobs.json" 2>/dev/null || true
-echo "Local backup saved to $DEST"
+~/.openclaw/scripts/backup.sh openclaw
 ```
 
-To keep only the 10 most recent local backups:
+What it does in a single run:
+1. **Full snapshot** → `~/backups/openclaw/$DATE/openclaw-full.tar.gz` (~450M)
+   - Includes: workspace/, memory/, agents/ (sessions), credentials/, openclaw.json, cron, secrets.json
+   - Skips: plugin-runtime-deps, browser, vendor, plugin-runtimes, tmp, logs, _migration_backup_*, *.bak*
+   - Manifest with sha256 alongside the tarball
+   - 7-day local retention
+   - Syncthing fans the snapshot out to Unraid then svr003 automatically — no extra step
+2. **Config-only subset** → `~/data/infrastructure/openclaw-backup/config/` then git commit + push
+   - Single-file configs + agent identity .md/.json + workspace/named-workspace markdown + memory
+   - Skips: session transcripts, vector DBs, logs, media, .bak files
+   - Used as the change-history audit trail (diff between commits to see what changed when)
+
+Other invocations:
 ```bash
-ls -dt ~/backups/openclaw/*/ | tail -n +11 | xargs rm -rf
+~/.openclaw/scripts/backup.sh --list      # show available targets on this host
+~/.openclaw/scripts/backup.sh all         # nightly cron firing — runs every target
 ```
+
+Cron schedule: launchd `ai.openclaw.backup.plist` fires `backup.sh all` daily at 02:30 local. Logs go to `~/Library/Logs/backup.log`.
 
 ---
 
@@ -45,7 +52,7 @@ npm view openclaw dist-tags
 
 ## Update OpenClaw to latest stable
 
-**Step 0 — local backup first (see above)**
+**Step 0 — backup first:** `~/.openclaw/scripts/backup.sh openclaw`
 
 ```bash
 # 1. Install latest via npm (OpenClaw is a global npm package)
@@ -73,94 +80,48 @@ openclaw doctor 2>&1 | head -40
 
 ---
 
-## Backup config to GitHub
-
-Backs up all essential config, agent identities, workspaces, and credentials
-to the private `robbohome-infrastructure` repo for catastrophic recovery.
-
-**Run after every update, or any time you change agent configs.**
-**Always do the local quick-backup above first — the GitHub backup is the long-term record.**
-
-```bash
-bash ~/data/infrastructure/openclaw-backup/backup.sh
-```
-
-What gets backed up:
-- `openclaw.json` — main config (all agent definitions, model routing, ACP, etc.)
-- `secrets.json` — API keys and credentials
-- `cron/jobs.json` — all scheduled jobs
-- `agents/*/agent/*.md` and `*.json` — agent identity/config files per agent
-- `workspace/agents/*/` — internal workspace agent markdown + memory
-- `workspaces/*/` — named workspace markdown, memory, and skills
-
-What is skipped (large, not needed for restore):
-- Session transcripts
-- Memory vector databases / sqlite
-- Logs, media, images
-- `.bak` files
-
----
-
 ## Restore from catastrophic failure
 
-Full step-by-step is in:
-`~/data/infrastructure/openclaw-backup/RESTORE.md`
+Three tiers of backup are available; pick the highest tier still alive:
 
-### Quick summary
+| Tier | Source | Best when |
+|---|---|---|
+| **Mac local** | `~/backups/openclaw/<date>/openclaw-full.tar.gz` | Mac is alive, just rolling back a config change |
+| **Onsite secondary** | Unraid `/mnt/user/data/syncthing/backups/mac-mini/openclaw/<date>/` | Mac mini hardware loss / OS reinstall |
+| **Off-site** | svr003 `/mnt/backup/mac-mini/openclaw/<date>/` | Both Mac mini and Unraid lost (fire/flood/site-wide) |
+| **Config-only history** | git repo `robinsondan87/robbohome-infrastructure` → `openclaw-backup/config/` | Want to inspect a past config or recover an older config without overwriting current data |
+
+### Quick full restore (any tier)
 
 ```bash
 # 1. Install prerequisites
 brew install node
 npm install -g openclaw@latest
 
-# 2. Clone infrastructure repo
-mkdir -p ~/data
-git clone git@github.com:robinsondan87/robbohome-infrastructure.git ~/data/infrastructure
+# 2. Pull the most recent snapshot from whichever tier is alive
+#    Example: from Unraid
+TARBALL=$(ssh svr001 'ls -1t /mnt/user/data/syncthing/backups/mac-mini/openclaw/*/openclaw-full.tar.gz | head -1')
+scp "svr001:$TARBALL" /tmp/openclaw-restore.tar.gz
 
-# 3. Restore config
-BACKUP="$HOME/data/infrastructure/openclaw-backup/config"
-DEST="$HOME/.openclaw"
-mkdir -p "$DEST"
+# 3. Extract into ~/.openclaw
+mkdir -p ~/.openclaw && tar -C ~/.openclaw -xzf /tmp/openclaw-restore.tar.gz
+echo "verify manifest matches:"
+ls /tmp/  # also pull manifest.txt from same dir if available
 
-cp "$BACKUP/openclaw.json"    "$DEST/openclaw.json"
-cp "$BACKUP/secrets.json"     "$DEST/secrets.json"
-mkdir -p "$DEST/cron"
-cp "$BACKUP/cron-jobs.json"   "$DEST/cron/jobs.json"
-
-# 4. Restore agent identity files
-for agent_dir in "$BACKUP/agents"/*/; do
-  agent_id=$(basename "$agent_dir")
-  mkdir -p "$DEST/agents/$agent_id/agent"
-  cp "$agent_dir"*.md   "$DEST/agents/$agent_id/agent/" 2>/dev/null || true
-  cp "$agent_dir"*.json "$DEST/agents/$agent_id/agent/" 2>/dev/null || true
-done
-
-# 5. Restore internal workspace agents
-for agent_dir in "$BACKUP/workspace-agents"/*/; do
-  agent_id=$(basename "$agent_dir")
-  mkdir -p "$DEST/workspace/agents/$agent_id"
-  cp "$agent_dir"*.md "$DEST/workspace/agents/$agent_id/" 2>/dev/null || true
-  [[ -d "$agent_dir/memory" ]] && mkdir -p "$DEST/workspace/agents/$agent_id/memory" && \
-    cp "$agent_dir/memory/"*.md "$DEST/workspace/agents/$agent_id/memory/" 2>/dev/null || true
-done
-
-# 6. Restore named workspaces
-for ws_dir in "$BACKUP/workspaces"/*/; do
-  ws_id=$(basename "$ws_dir")
-  mkdir -p "$DEST/workspaces/$ws_id"
-  cp "$ws_dir"*.md "$DEST/workspaces/$ws_id/" 2>/dev/null || true
-  [[ -d "$ws_dir/memory" ]] && mkdir -p "$DEST/workspaces/$ws_id/memory" && \
-    cp "$ws_dir/memory/"*.md "$DEST/workspaces/$ws_id/memory/" 2>/dev/null || true
-  [[ -d "$ws_dir/skills" ]] && cp -r "$ws_dir/skills" "$DEST/workspaces/$ws_id/skills" || true
-done
-
-# 7. Start the gateway
+# 4. Start the gateway
 openclaw gateway install
 openclaw gateway start
 openclaw status
-
-# 8. Run doctor to fix any issues
 openclaw doctor --fix
+```
+
+### Config-only restore (point-in-time inspection)
+
+```bash
+git clone git@github.com:robinsondan87/robbohome-infrastructure.git ~/data/infrastructure
+git -C ~/data/infrastructure log -- openclaw-backup/config/   # find a known-good commit
+git -C ~/data/infrastructure checkout <sha> -- openclaw-backup/config/
+# then cherry-pick files into ~/.openclaw as needed
 ```
 
 ---
@@ -175,6 +136,11 @@ openclaw doctor --fix
 | Latest version | `npm view openclaw dist-tags.latest` |
 | Local changelog | `/opt/homebrew/lib/node_modules/openclaw/CHANGELOG.md` |
 | Docs | https://docs.openclaw.ai |
-| Backup script | `~/data/infrastructure/openclaw-backup/backup.sh` |
-| Restore guide | `~/data/infrastructure/openclaw-backup/RESTORE.md` |
+| Backup script | `~/.openclaw/scripts/backup.sh` (parametrised — `openclaw`/`all`/`--list`) |
+| Backup schedule | launchd `~/Library/LaunchAgents/ai.openclaw.backup.plist` — daily 02:30 |
+| Backup log | `~/Library/Logs/backup.log` |
+| Local snapshots | `~/backups/openclaw/$DATE/` (7-day retention) |
+| Onsite copy | Unraid `/mnt/user/data/syncthing/backups/mac-mini/` (Syncthing fanout) |
+| Off-site copy | svr003 `/mnt/backup/mac-mini/` (Syncthing relay through Unraid) |
+| Config-only history | `robinsondan87/robbohome-infrastructure` → `openclaw-backup/config/` |
 | Infra repo (GitHub) | `robinsondan87/robbohome-infrastructure` (cloned to `~/data/infrastructure/`) |
