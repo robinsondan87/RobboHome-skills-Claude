@@ -92,11 +92,93 @@ ssh svr003 "curl -s -H 'X-API-Key: <key>' http://127.0.0.1:8384/rest/db/status?f
 
 ## Cluster topology
 ```
-Mac (FGG3TI4)      →      Unraid (JCN427H)      →      svr003 (KY6BY3S)
-sendonly                 sendreceive (relay)           receiveonly
+Dan's MacBook Pro (FGG3TI4)  ─┐
+Mac mini (36L7BA2)            ├──→  Unraid (JCN427H)  ─→  svr003 (KY6BY3S)
+svr002 (RU4B6FL)              ─┘                              receiveonly
+                                    sendreceive (relay)
+Unraid (JCN427H) ───────────────────────────────────────→  svr003 (KY6BY3S)
+                                                              receiveonly (svr001 backups direct)
 ```
 
-Mac is the source of truth. Unraid receives and forwards to svr003. svr003 is purely a backup — no writes propagate upstream.
+Multiple senders → Unraid relays → svr003 receives. svr003 is purely backup — no writes propagate upstream.
+
+### Folders on svr003
+| Folder ID | Path | Source | Type |
+|---|---|---|---|
+| `pictures` / `documents` / `3dprinting` / `scc_2026` / `ssd_photos` | `/mnt/backup/<name>` | MacBook Pro | sendonly chain |
+| `backups-mac-mini` | `/mnt/backup/mac-mini` | Mac mini | openclaw target |
+| `backups-svr002` | `/mnt/backup/svr002` | svr002 | plane, geekythings, gym-coach, loop-coach, brickswap, ollama, hello-world |
+| `backups-svr001` | `/mnt/backup/svr001` | Unraid (svr001) | flash, appdata, docker-state, timescale |
+
+## Recovery sequence (INFRA-2)
+
+The off-site copy at svr003 is the last line of defence. If both the source host and Unraid are lost (fire/flood/site-wide), restore from svr003.
+
+### Restore an openclaw snapshot to a fresh Mac mini
+```bash
+# 1. Copy the most recent tarball from svr003 to scratch
+ssh svr003 'ls -1t /mnt/backup/mac-mini/openclaw/*/openclaw-full.tar.gz | head -1' \
+  | xargs -I {} scp svr003:{} /tmp/openclaw-restore.tar.gz
+
+# 2. Verify sha256 against the manifest
+ssh svr003 'cat /mnt/backup/mac-mini/openclaw/$(ls /mnt/backup/mac-mini/openclaw | sort | tail -1)/manifest.txt'
+shasum -a 256 /tmp/openclaw-restore.tar.gz
+
+# 3. Extract into ~/.openclaw
+mkdir -p ~/.openclaw
+tar -C ~/.openclaw -xzf /tmp/openclaw-restore.tar.gz
+
+# 4. Reinstall openclaw + start gateway
+npm install -g openclaw@latest
+openclaw gateway install && openclaw gateway start
+openclaw doctor --fix
+```
+
+### Restore TimescaleDB on svr001 (or fresh Unraid)
+```bash
+# 1. Pull dump from svr003
+ssh svr003 'ls -1t /mnt/backup/svr001/timescale/*/timescale-all.sql.gz | head -1' \
+  | xargs -I {} scp svr003:{} /tmp/timescale-restore.sql.gz
+
+# 2. Stop the timescaledb container, wipe + recreate volume (DESTRUCTIVE)
+ssh svr001 'docker stop timescaledb'
+# Remove the appdata dir contents OR mount a fresh one, then start
+ssh svr001 'docker start timescaledb'
+
+# 3. Restore
+gunzip -c /tmp/timescale-restore.sql.gz \
+  | ssh svr001 'docker exec -i -e PGPASSWORD=$POSTGRES_PASSWORD timescaledb psql -U metrics -d postgres'
+```
+
+### Restore Plane (svr002)
+```bash
+# Pull pg_dump
+ssh svr003 'ls -1t /mnt/backup/svr002/plane/*/plane.sql.gz | head -1' \
+  | xargs -I {} scp svr003:{} /tmp/plane-restore.sql.gz
+
+# Restore via the existing plane-app-plane-db-1 container
+gunzip -c /tmp/plane-restore.sql.gz \
+  | ssh robbohome-server 'docker exec -i plane-app-plane-db-1 psql -U plane -d plane'
+
+# Also restore the config tarball if needed
+ssh svr003 'cat /mnt/backup/svr002/plane/$(ls /mnt/backup/svr002/plane | sort | tail -1)/plane-selfhost.tar.gz' \
+  | ssh robbohome-server 'tar -C ~/data -xzf -'
+```
+
+### Restore Unraid `/boot/config` (full Unraid OS config — last-resort scenario)
+```bash
+# Copy from svr003
+ssh svr003 'ls -1t /mnt/backup/svr001/flash/*/flash-config.tar.gz | head -1' \
+  | xargs -I {} scp svr003:{} /tmp/flash-restore.tar.gz
+
+# On a fresh Unraid USB (booted into the trial OS):
+# 1. Mount the USB
+# 2. tar -C /boot -xzf /tmp/flash-restore.tar.gz   # restores config/
+# 3. Reboot
+```
+
+### Quarterly drill (INFRA-2 op habit, not code)
+Pick one target per source host. Pull from svr003 to a scratch dir. Verify the manifest sha256 matches. Extract or open. Confirm content is intact. Don't restore over live data — drill should be non-destructive.
 
 ## Related Skills
 - `skills/svr002/SKILL.md` — primary home server
