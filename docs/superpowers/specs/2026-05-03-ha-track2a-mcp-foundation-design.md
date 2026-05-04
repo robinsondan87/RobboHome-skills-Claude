@@ -73,11 +73,10 @@ Created in **Settings → People → Users**:
 1. **`claude_code`** — administrator. Password stored in SOPS as `HA_CLAUDE_CODE_PASSWORD`. LLAT stored as `HA_CLAUDE_CODE_TOKEN`.
 2. **`eve_home`** — non-administrator. Password stored in SOPS as `HA_EVE_HOME_PASSWORD`. LLAT stored as `HA_EVE_HOME_TOKEN`.
 
-**Auth-flow clarification (caveat — verify on first run):**
+**Auth-flow clarification (verified 2026-05-04):**
 
-- The `ha-mcp` add-on uses its **own secret-path-in-URL auth**, *not* per-HA-user. Actions performed via the add-on may be attributed to a single shared system identity (e.g. `Supervisor`) rather than the `claude_code` user. **Audit attribution caveat:** if it turns out the add-on doesn't impersonate per-user, the `claude_code` HA user becomes cosmetic / fallback only. Verify by hitting an `light.toggle` via MCP and checking HA Logbook for the user attribution.
-- The `eve_home` LLAT, by contrast, IS used directly in `Authorization: Bearer …` headers by the OpenClaw `ha-tools` skill — every REST call carries the `eve_home` identity, so audit attribution is clean here.
-- **Implication:** if claude_code-via-MCP doesn't get per-user audit, fall back to the long-lived token approach for Claude Code too (REST instead of MCP), or open an issue with the `ha-mcp` add-on upstream. Decision deferred to implementation.
+- The `ha-mcp` add-on uses its **own secret-path-in-URL auth**. Logbook attribution: **verified working** by user — confirmed during Phase 5 verification, audit-attribution caveat closed.
+- The `eve_home` LLAT IS used directly in `Authorization: Bearer …` headers by the OpenClaw `ha-tools` skill. Every REST call returns `context.user_id` populated correctly (verified by inspecting the `notify.send_message` response body during Phase 5).
 
 ### 4.3 Entity exposure curation for EVE Home
 
