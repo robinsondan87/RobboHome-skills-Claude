@@ -49,14 +49,18 @@ For services with extra data (e.g. `light.turn_on` with `brightness_pct`):
 
 ## Tool 4: `ha_announce(echo, message)`
 
-Wrapper for `notify.<echo>_announce`:
+The `alexa_devices` integration registers each Echo's announce surface as a `notify.*` **entity** (not a legacy notify-domain service). Use `notify.send_message` with the entity ID:
 
 ```bash
 curl -s -X POST -H "Authorization: Bearer $HA_EVE_HOME_TOKEN" \
   -H "Content-Type: application/json" \
-  "http://192.168.1.151:8123/api/services/notify/${echo}_announce" \
-  -d '{"message": "'"${message}"'"}'
+  "http://192.168.1.151:8123/api/services/notify/send_message" \
+  -d '{"entity_id": "notify.'"${echo}"'_announce", "message": "'"${message}"'"}'
 ```
+
+Expected: HTTP 200 with the entity row in the response body. Echo speaks within ~5s.
+
+Do **not** use the legacy `POST /api/services/notify/<echo>_announce` shape — that returns HTTP 400 in this HA build (no service of that name exists).
 
 Available `echo` values: `kitchen_echo_show`, `williams_echo_dot`, `dan_s_2nd_echo_dot`, `dan_s_3rd_echo_dot`, `dan_s_4th_echo_dot`.
 

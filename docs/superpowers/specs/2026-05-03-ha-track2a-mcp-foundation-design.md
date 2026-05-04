@@ -118,17 +118,19 @@ Restart Claude Code after editing for tools to load. Confirm available via `clau
 
 ### 4.5 OpenClaw `ha-tools` skill (new)
 
-Custom skill at `~/Projects/RobboHome-skills-Claude/plugins/ha-tools/skills/ha-tools/SKILL.md` exposing four tool patterns to EVE Home:
+Custom skill at `~/Projects/RobboHome-skills-Claude/plugins/ha-tools/skills/ha-tools/SKILL.md` exposing five tool patterns to EVE Home:
 
 ```python
 ha_get_state(entity_id: str) -> str          # current state
 ha_get_attributes(entity_id: str) -> dict    # full attribute dict
 ha_call_service(domain, service, target, data) -> dict   # generic service call
-ha_announce(echo: str, message: str)         # wrapper for notify.<echo>_announce
+ha_announce(echo: str, message: str)         # POST /api/services/notify/send_message with entity_id=notify.<echo>_announce
 ha_list_entities(area=None, label=None, domain=None)     # discovery via /api/states + filters
 ```
 
-All four use HA REST API at `http://192.168.1.151:8123/api/...` with `Authorization: Bearer ${HA_EVE_HOME_TOKEN}` from OpenClaw's secrets store.
+All use HA REST API at `http://192.168.1.151:8123/api/...` with `Authorization: Bearer ${HA_EVE_HOME_TOKEN}` from OpenClaw's secrets store.
+
+**Implementation note (2026-05-04):** The `alexa_devices` integration registers each Echo's announce surface as a `notify.*` **entity**, not a legacy notify-domain service. Use `notify.send_message` with `entity_id`, not `notify.<echo>_announce`. The latter returns HTTP 400. SKILL.md Tool 4 documents the working pattern.
 
 ### 4.6 EVE Home agent updates
 
@@ -143,12 +145,23 @@ Edit `~/.openclaw/workspace/agents/home-assistant/TOOLS.md` to replace the templ
 
 ## 5. Permissions / safety enforcement
 
-| Layer | Mechanism | Who's protected |
+**Implementation finding (2026-05-04):** HA's REST `/api/states/<entity_id>` does **NOT** enforce per-user entity exposure for non-admin users. The curated exposure list applies only to the conversation/Assist assistant pipeline, not to raw REST callers. A non-admin LLAT can read every state in HA. **Implication:** the `eve_home` LLAT, if compromised, can read everything (including cameras, locks). It is still blocked from admin operations (restart/reload/edit YAML) by the non-admin role.
+
+Updated layered model:
+
+| Layer | Mechanism | What it protects |
 |---|---|---|
 | Transport | ha-mcp add-on uses secret-path URL; only those with the URL can hit it | All other LAN users / lateral movement |
-| HA-side identity | Per-user HA accounts; admin vs non-admin | Stops EVE Home from doing admin acts even with valid token |
-| Entity exposure | Per-user opt-in exposure list (`eve_home` gets a curated list, NOT default-expose) | Stops accidental discovery of sensitive entities (cameras, locks, internal sensors) |
-| Audit | HA logs every service call with the user identity; visible in Logbook + History | All actions traceable to which agent did what |
+| HA-side identity (admin vs non-admin) | `claude_code` is admin; `eve_home` is not. Non-admin **cannot** restart, reload, edit YAML, manage users, etc. | Stops EVE Home from doing admin acts even with valid token |
+| Entity exposure (assistants only) | `homeassistant/expose_entity` curates what the **conversation/Assist pipeline** sees — *advisory* for raw-REST callers | Limits what HA's voice assistant pipeline acts on; does NOT bound raw REST scope |
+| Audit | Every service call carries `context.user_id` matching the LLAT's user; visible in Logbook | All actions traceable to which agent (verified: `notify.send_message` returns `context.user_id` populated correctly) |
+
+**Mitigation options for the REST-scope gap (deferred to 2b):**
+- (a) Accept the LLAT-trust-boundary and document — `eve_home` is read-only at worst, can't escalate to admin
+- (b) Front EVE Home through a thin proxy that filters entity_ids against the curated list before forwarding
+- (c) Put HA behind an auth proxy that maps tokens to allowed paths
+
+For 2a we accept (a). Treat the `eve_home` LLAT as a sensitive credential.
 
 ## 6. Acceptance criteria
 
