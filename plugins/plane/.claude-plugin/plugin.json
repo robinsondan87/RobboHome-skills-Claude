@@ -1,1 +1,1 @@
-{ "name": "plane", "version": "0.1.0", "description": "Self-hosted Plane on svr002 — RobboHome workspace, INFRA project, API patterns + TODO discovery." }
+{ "name": "plane", "version": "0.1.1", "description": "DEPRECATED 2026-05-06: Plane was migrated to Atlassian Cloud Jira and decommissioned. Use `jira:jira` instead. Kept only as historical migration reference." }

@@ -1,0 +1,5 @@
+{
+  "name": "jira",
+  "version": "1.0.0",
+  "description": "Atlassian Cloud Jira (RobboHome workspace) — canonical TODO tracker. SOPS-managed creds, REST v3 quick-reference, ADF description converter, TODO discovery sweep. Replaces the deprecated `plane` skill (migrated 2026-05-06)."
+}

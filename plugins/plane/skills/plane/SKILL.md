@@ -1,10 +1,16 @@
 ---
-description: Self-hosted Plane (project tracker) on svr002 — RobboHome workspace, Infrastructure project, API access via SOPS, and the TODO discovery sweep pattern.
+description: DEPRECATED 2026-05-06 — Plane was migrated to Atlassian Cloud Jira and the self-hosted stack was decommissioned. Use the `jira:jira` skill instead. This file is kept only as historical reference for the Plane → Jira migration.
 ---
 
-# Skill: Plane (canonical TODO tracker)
+# Skill: Plane (DEPRECATED — migrated to Jira on 2026-05-06)
 
-[Plane](https://plane.so) Community Edition self-hosted on svr002 — Linear/Jira-style issue tracker. Replaces ad-hoc `TODO.md` files across the fleet.
+> ⚠️ **DEPRECATED.** Plane was decommissioned on 2026-05-06. All 86 open issues across the 6 projects (INFRA, LC, HA, SCC, GT, OC) were migrated to Atlassian Cloud Jira at `https://robbohome.atlassian.net`, the Docker stack on svr002 was torn down (~4.3GB reclaimed), and the `plane.robbohome.com` Cloudflare tunnel route + DNS record were removed.
+>
+> **For all new TODO/issue work, use the `jira:jira` skill.** This file is retained only as historical reference for the migration itself — the API patterns, project IDs, and admin credentials below no longer point at a running service.
+
+---
+
+[Plane](https://plane.so) Community Edition was self-hosted on svr002 — Linear/Jira-style issue tracker. Replaced ad-hoc `TODO.md` files across the fleet from early 2026 until the Jira migration on 2026-05-06.
 
 ## Where it lives
 
