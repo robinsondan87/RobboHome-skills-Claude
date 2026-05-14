@@ -1,0 +1,6 @@
+{
+  "name": "dan-blog-content",
+  "version": "1.0.0",
+  "description": "Reference for the RobboHome blog stack — admin UI, JSON API, and the dan-blog-content OpenClaw agent that captures and develops ideas.",
+  "author": { "name": "robinsondan87" }
+}
