@@ -27,11 +27,12 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 **SSR (require auth):**
 - `/admin/login` — password form (open)
-- `/admin/ideas` — capture + list + state transitions (cookie-gated)
+- `/admin/ideas` — capture + list + state transitions + inline draft editor with image drop zone (cookie-gated)
 - `/admin/logout` — POST clears cookie
 - `/api/health` — bearer-gated ping
 - `/api/ideas[?state=]` — list / create
 - `/api/ideas/:id` — read / patch / delete
+- `/api/uploads` — multipart image upload, commits to the blog repo via the GitHub Contents API. **Accepts cookie OR bearer** (so the admin UI's browser can call it without exposing the bearer token). Other `/api/*` routes stay bearer-only.
 
 ## Auth
 
@@ -39,7 +40,9 @@ A small companion reference so future-Claude knows the blog stack exists without
 |---|---|---|
 | `/admin/*` UI | `APP_PASSWORD` env var + HMAC-signed cookie (`AUTH_SECRET`) | GitHub secret on the repo; stash in 1Password |
 | `/api/*` JSON | `Authorization: Bearer $ADMIN_API_TOKEN` | GitHub secret on the repo |
+| `/api/uploads` | Cookie OR bearer (special-cased in `src/middleware.ts`) | Same as above |
 | Agent's API token | Plain text file (mode 0600) | `/Users/robbohomebot/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt` |
+| GitHub Contents API (commits from `/api/uploads`) | `BLOG_REPO_PAT` env var — fine-grained PAT, `contents:write` on `robinsondan87/robbohome-blog` only | GitHub secret on the repo (name: `BLOG_REPO_PAT`) |
 
 `security.checkOrigin` is disabled in `astro.config.mjs` — the HMAC cookie does the CSRF job.
 
@@ -140,9 +143,10 @@ Don't generate the image yourself unless Dan asks. Hand him the prompt in the co
 | Capture an idea from Discord | Post in `#dan-blog`, agent calls `POST /api/ideas` |
 | Capture from anywhere | Curl `POST $BASE/ideas` with bearer token |
 | See current inbox | https://blog.robbohome.com/admin/ideas or `GET /api/ideas?state=idea` |
-| Develop an idea into a draft | Ask agent in `#dan-blog`; agent PATCHes `draft_markdown` + state=drafting |
-| Read a draft | Admin UI shows `<details>` Draft (N chars) panel; or `GET /api/ideas/:id` |
-| Publish a post | Copy `draft_markdown` from admin UI into `src/content/blog/<slug>.md` with frontmatter, commit, `make bump-patch`, push. Then PATCH state=done on the idea. |
+| Develop an idea into a draft | Ask agent in `#dan-blog`; agent PATCHes `draft_markdown` + state=drafting. Include image placeholders for every image the post needs (see *Image placeholders in drafts* above). |
+| Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
+| Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads to `src/assets/images/<idea-id>/<filename>` via `POST /api/uploads`, inserts `![](relativePath)` at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment into the `![alt](...)` brackets before publishing. |
+| Publish a post | Copy `draft_markdown` from admin UI into `src/content/blog/<slug>.md` (or `notes/`) with frontmatter, commit, `make bump-patch`, push. Then PATCH state=done on the idea. (Will be moved into the admin UI once slice 2 of INFRA-24 ships.) |
 | Rotate `APP_PASSWORD` | `gh secret set APP_PASSWORD --repo robinsondan87/robbohome-blog --body '<new>'` then trigger workflow |
 | Rotate `ADMIN_API_TOKEN` | Same as above, but also update `~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt` (it's a local copy, not a SecretRef) |
 | Invalidate all admin sessions | Rotate `AUTH_SECRET` instead (HMAC cookie verification fails) |
