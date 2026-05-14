@@ -118,7 +118,7 @@ ASPECT: 16:9
 ALT: A short sentence describing the image for screen readers.
 PROMPT: The full image-generator prompt, anything until the closing arrow.
 -->
-![TODO — see IMAGE: hero comment above](TODO-IMAGE-hero)
+![TODO — replace JUST this line with the uploaded image; leave the comment above as a record](TODO-IMAGE-hero)
 ```
 
 Rules when drafting:
