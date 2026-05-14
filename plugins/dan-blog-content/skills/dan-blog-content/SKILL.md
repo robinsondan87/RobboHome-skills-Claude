@@ -107,6 +107,32 @@ seriesTotal: 3
 `src/content/log/<slug>.md`: `date`, `kind` (`reading|sketch|parked|note|shipped`), `title`, optional `detail` + `link`.
 `src/content/projects/<slug>.md`: `name`, `tagline`, `status`, `order`, `section`, `heroIllustration`, etc.
 
+## Image placeholders in drafts
+
+Every draft that needs images uses an HTML comment block per image plus a deliberately-broken placeholder line. The comment preserves the prompt + alt for future regeneration; the broken `![]()` makes it impossible to publish accidentally with images missing.
+
+```markdown
+<!--
+IMAGE: hero
+ASPECT: 16:9
+ALT: A short sentence describing the image for screen readers.
+PROMPT: The full image-generator prompt, anything until the closing arrow.
+-->
+![TODO — see IMAGE: hero comment above](TODO-IMAGE-hero)
+```
+
+Rules when drafting:
+
+- One placeholder per image, in the position it'll occupy in the rendered post.
+- `IMAGE:` id is unique within the post — `hero`, `inline-1`, `inline-2`, etc.
+- `ASPECT:` follows the visual rhythm: `16:9` for the hero, `4:3` or `1:1` for inline sections.
+- `ALT:` is real alt text, not placeholder text. Screen readers will read it.
+- `PROMPT:` is tuned to match the newsprint aesthetic — see *Visual / editorial conventions* below for the palette/style cues.
+
+When Dan uploads the real image via the admin drop zone, **only the `![TODO ...](TODO-IMAGE-<id>)` line gets replaced** with the inserted `![<alt>](relativePath)`. The comment block stays above it — it's the receipt of how the image was generated and lets future-Dan (or a different image model) regenerate without losing context.
+
+Don't generate the image yourself unless Dan asks. Hand him the prompt in the comment, leave the placeholder broken, and let him drive the image-gen tool.
+
 ## Common operations
 
 | Task | How |
