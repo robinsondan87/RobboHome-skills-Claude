@@ -136,6 +136,16 @@ When Dan uploads the real image via the admin drop zone, **only the `![TODO ...]
 
 Don't generate the image yourself unless Dan asks. Hand him the prompt in the comment, leave the placeholder broken, and let him drive the image-gen tool.
 
+## What NOT to put in a draft
+
+These are easy to add as helpful "future-Dan" notes but actively cause damage at publish time:
+
+- **No leading `---...---` "Suggested frontmatter" preamble.** The publish modal on `/admin/ideas` now supplies real frontmatter from the form. A preamble bordered by `---` markers in the draft body renders as a stray `<hr>` plus a code block on the live page. `publishDraft()` strips it defensively, but don't write it in the first place — keep the draft as pure post content.
+- **No `pubDate` or other frontmatter keys inline in the body.** Same reason — the form supplies these.
+- **No "TL;DR for Dan" / "Voice notes:" lines mixed into the body.** Put guidance in the idea's `notes` field instead. The body should be the published copy verbatim.
+
+The Bambu URL-schemes post was the canary for this — it shipped with a visible preamble before the strip + skill rules landed.
+
 ## Common operations
 
 | Task | How |
