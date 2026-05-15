@@ -27,12 +27,15 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 **SSR (require auth):**
 - `/admin/login` — password form (open)
-- `/admin/ideas` — capture + list + state transitions + inline draft editor with image drop zone (cookie-gated)
+- `/admin/ideas` — capture + list + state transitions + inline draft editor with image drop zone + publish-to-blog/notes dialog (cookie-gated)
+- `/admin/posts` — directory of every file in `src/content/blog/` and `src/content/notes/`, pulled live via the GitHub Contents API
+- `/admin/posts/<collection>/<slug>` — edit page for an existing post: full-file textarea (frontmatter + body), image drop zone (assets land under `src/assets/images/posts/<slug>/`), Save (commits with if-match SHA → 409 on concurrent edits), Unpublish (toggles `draft: true`), Delete (git rm)
 - `/admin/logout` — POST clears cookie
 - `/api/health` — bearer-gated ping
 - `/api/ideas[?state=]` — list / create
 - `/api/ideas/:id` — read / patch / delete
-- `/api/uploads` — multipart image upload, commits to the blog repo via the GitHub Contents API. **Accepts cookie OR bearer** (so the admin UI's browser can call it without exposing the bearer token). Other `/api/*` routes stay bearer-only.
+- `/api/ideas/:id/publish` — assemble frontmatter + draft body, commit to `src/content/<collection>/<slug>.md`, mark idea done
+- `/api/uploads` — multipart image upload, commits via the GitHub Contents API. **Accepts cookie OR bearer**. Pass either `idea_id` (draft context, assets → `src/assets/images/<id>/`) OR `post_collection` + `post_slug` (existing-post context, assets → `src/assets/images/posts/<slug>/`). Other `/api/*` routes stay bearer-only.
 
 ## Auth
 
@@ -156,7 +159,11 @@ The Bambu URL-schemes post was the canary for this — it shipped with a visible
 | Develop an idea into a draft | Ask agent in `#dan-blog`; agent PATCHes `draft_markdown` + state=drafting. Include image placeholders for every image the post needs (see *Image placeholders in drafts* above). |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
 | Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads to `src/assets/images/<idea-id>/<filename>` via `POST /api/uploads`, inserts `![](relativePath)` at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment into the `![alt](...)` brackets before publishing. |
-| Publish a post | Copy `draft_markdown` from admin UI into `src/content/blog/<slug>.md` (or `notes/`) with frontmatter, commit, `make bump-patch`, push. Then PATCH state=done on the idea. (Will be moved into the admin UI once slice 2 of INFRA-24 ships.) |
+| Publish a post | `/admin/ideas` → click "publish…" on a drafting-state idea, pick collection + frontmatter, hit Publish. One commit on `main`, Pattern A redeploys. The idea moves to Done with the live URL on the row. |
+| Edit an existing post | `/admin/posts` → click the slug → edit the file in the textarea. Save commits with sha conflict detection — concurrent local edits return 409 with a "reload" message instead of silently overwriting. |
+| Add images to a post (live or draft) | Drop or paste into the editor's drop zone. Drafts use `idea_id`; published posts use `post_collection` + `post_slug`. Assets land under the right path, markdown `![]()` reference inserted at the cursor. |
+| Unpublish a post | On the edit page, hit "Unpublish (set draft: true)". Toggles `draft:` in frontmatter; the file stays in git but stops rendering on the public site. |
+| Delete a post | On the edit page, hit "Delete (git rm)" — confirm modal, then a commit on `main` removes the file. |
 | Rotate `APP_PASSWORD` | `gh secret set APP_PASSWORD --repo robinsondan87/robbohome-blog --body '<new>'` then trigger workflow |
 | Rotate `ADMIN_API_TOKEN` | Same as above, but also update `~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt` (it's a local copy, not a SecretRef) |
 | Invalidate all admin sessions | Rotate `AUTH_SECRET` instead (HMAC cookie verification fails) |
@@ -171,7 +178,8 @@ The Bambu URL-schemes post was the canary for this — it shipped with a visible
 
 ## What I should NOT do without Dan's say-so
 
-- Auto-commit a draft to the blog repo (the `POST /api/ideas/:id/publish` endpoint isn't built yet — Dan reviews + ships manually from the admin UI).
+- Publish an idea or edit an existing post **without explicit "yes, ship it"** from Dan. The endpoints exist (`POST /api/ideas/:id/publish` and the `/admin/posts/<collection>/<slug>` save/delete flow) and the agent has a bearer token that can call them — but each is a real commit on `main` that triggers Pattern A. Wait for Dan to drive the publish/edit himself in the admin UI, unless he explicitly delegates a specific action.
+- Delete a post. Even with sha-conflict detection, a `git rm` commit is destructive — confirm in chat before doing it.
 - Post anything to LinkedIn. That's `dan-linkedin`'s job. The blog agent hands off via a brief — Dan moves it across channels.
 - Touch the production tunnel config, the runner registration, or the Cloudflare DNS (that's `robbohome-admin` territory).
 
