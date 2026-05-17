@@ -149,6 +149,119 @@ These are easy to add as helpful "future-Dan" notes but actively cause damage at
 
 The Bambu URL-schemes post was the canary for this — it shipped with a visible preamble before the strip + skill rules landed.
 
+## Prompt for reflective capture sessions
+
+Use this when Dan asks a long-running session or agent to "look back at our work together and propose blog ideas". Paste the block below into the session verbatim — it's self-contained, embeds the voice rules, and tells the session to be conservative (capture zero or one idea per session, three is suspicious).
+
+The audience for the prompt is a different session, not future-you. Don't trim it on the assumption the reader knows context — they don't.
+
+```
+Goal: capture blog-idea drafts based on YOUR experience working with Dan in
+this session (and any earlier session context you have). The inbox at
+https://blog.robbohome.com/admin/ideas holds Dan's existing curated ideas;
+you're adding only the noteworthy moments from your shared work.
+
+If you have the `dan-blog-content` skill installed, load it now — it has the
+full API reference and voice rules. Then return here for the source-material
+guidance, which is specific to this task.
+
+The blog you're contributing to
+- Publication name: "Production Shaped" (migrating from RobboHome).
+- Strapline: field notes on running things like production — at work, at home,
+  and in the gap between them.
+- The genre: every post traces a discipline from work-production to home-
+  production and reports honestly on the friction. Not how-to-do-SRE.
+  What travels and what doesn't.
+
+Source material — what to look at
+- This conversation: what did Dan ask, what did you build, what broke, what
+  was the friction, what surprised either of you.
+- Patterns ACROSS the work, not single tasks: three slips of the same kind of
+  bug; a scoping decision Dan made twice; a tool that only works because Dan
+  treats his home like production; a tool that doesn't because he can't.
+- Things Dan said in passing that sounded like a one-liner waiting for a
+  600-word post around them.
+
+The work/home gap is the brand
+The strongest captures point at the tension where production-thinking from
+work-Dan meets the four humans, no rota, no SLA realities of home-Dan. If
+a candidate idea doesn't have that moment, it's probably not for this blog.
+
+Filter — almost nothing you did together belongs on the blog
+The hard test: would a future reader who doesn't know Dan find this honest,
+specific, and slightly painful in a useful way?
+
+Do NOT capture:
+- "We built feature X." Dan isn't running a changelog.
+- "Look how productive we were." He isn't running a marketing blog.
+- Tutorials that just describe what got built. The how is in the code.
+- Anything without a moment of friction, walked-back decision, or surprise.
+
+DO consider capturing:
+- A bug that taught a real lesson (e.g. a CSS-variable typo that broke a
+  modal; a draft preamble that escaped into a live post).
+- A scoping decision Dan made twice in different contexts.
+- A point where doing it the production way at home felt absurd, AND doing
+  it the home way at home felt sloppy. The tension itself is the post.
+- A meta observation about the pacing — vertical slices that each shipped,
+  the discipline of stopping a slice when you could keep going.
+- An honest "the LLM in the loop did X well / fluffed Y" reflection — but
+  only if specific. Generic "AI is helpful" doesn't earn its place.
+
+The hook test
+Before you POST anything: write the one-sentence hook out loud. If it sounds
+like a press release or a tutorial intro, don't ship. If it sounds like
+something Dan would say to a friend at a pub, you've got one.
+
+API (skip this section if the skill is loaded)
+- POST https://blog.robbohome.com/api/ideas
+- Bearer token: /Users/robbohomebot/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt
+- Headers:
+    Authorization: Bearer <token>
+    Content-Type: application/json
+    User-Agent: curl/8.4.0          # Python urllib default UA is 1010-blocked
+- Body: { "title": "≤200 chars, imperative, sentence-case", "notes": "<brief>" }
+- GET /api/ideas first; dedupe by case-insensitive title match.
+
+What to put in `notes`
+- Why (the hook + the tension that earns it)
+- Where it'd live: /blog (essay) or /notes (paragraph + link)
+- 1–3 suggested tags from: sre-at-home, agents, homelab, observability,
+  walked-back, postmortem, runbook, reflection, field-notes, vertical-slice,
+  craft, 3d-printing, home-assistant
+- Rough length (300–500 for /notes, 800–1500 for /blog)
+- Voice guardrails specific to this idea (e.g. "don't name family",
+  "OpenClaw is adopted not built", "don't claim 3D printing is a business")
+- Image placeholders (per the skill's convention) if the piece needs them
+
+Voice rules (always)
+1. OpenClaw is NOT Dan's — adopted from openclaw.ai. Frame as "the runtime
+   I run my fleet on", never "the runtime I built."
+2. 3D printing / GeekyThings is a HOBBY in public copy — never "side
+   business", "marketplaces", "customers", "selling". Bet365 employment
+   terms.
+3. No identifying child / school / clinic / address detail. The son's
+   existence is acknowledged; specifics are not.
+4. No Bet365 internal specifics. Day job: "Site Reliability Tech Lead at
+   a large UK tech company."
+5. British spelling. First-person. No marketing voice — no "elevate",
+   "leverage", "unlock", no exclamation marks, no "drop a comment".
+6. Don't claim authorship of anything Dan only runs/configured (Claude
+   Code, OpenClaw, Home Assistant, New Relic — all someone else's work).
+
+Stopping rule
+Capture zero or one idea per session. Two is unusual. Three is suspicious —
+it usually means you're capturing process not story. Re-read your shortlist
+and cut. Better to skip than dilute the inbox.
+
+Report back
+- "OK <id> — <title>" per capture
+- "SKIP (<one-line reason>) — <would-have-been-title>" per skip
+- One honest closing sentence on why you skipped what you skipped, OR why
+  the session genuinely had nothing worth capturing (that's the right
+  answer most of the time).
+```
+
 ## Common operations
 
 | Task | How |
