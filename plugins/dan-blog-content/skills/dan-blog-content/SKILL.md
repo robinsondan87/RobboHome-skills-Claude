@@ -1,23 +1,34 @@
 ---
-description: Reference for Dan's blog at blog.robbohome.com — the admin UI, the JSON ideas API, and the dan-blog-content OpenClaw agent. Use when helping Dan with anything blog-shaped (capture, draft, publish, voice, agent troubleshooting).
+description: Reference for Dan's personal site — RobboHome at blog.robbohome.com and the in-flight rebrand to Production Shaped at productionshaped.robbohome.com. Covers the admin UI, the JSON ideas API, and the dan-blog-content OpenClaw agent. Use when helping Dan with anything blog-shaped (capture, draft, publish, voice, agent troubleshooting).
 ---
 
 # Dan's blog — admin, API, and agent
 
 A small companion reference so future-Claude knows the blog stack exists without Dan re-explaining.
 
-## Site
+## Brand pivot in progress
 
-| Item | Value |
-|---|---|
-| Project path | `/Users/robbohomebot/Projects/BLOG` |
-| Public URL | https://blog.robbohome.com |
-| Repo | `robinsondan87/robbohome-blog` (private) |
-| Stack | Astro 5 hybrid (Node adapter, standalone), nginx-removed in v0.7.0 |
-| Internal URL | `http://192.168.1.17:3003` on svr002 |
-| Container | `robbohome-blog` (Docker on svr002) |
-| Deploy | Pattern A — `make bump-patch` → `git push` → CI on the repo's self-hosted runner |
-| Data volume | `/home/robbohomebot/data/robbohome-blog/data` on svr002 (SQLite admin DB lives here) |
+The site is being rebranded from **RobboHome** (homelab framing) to **Production Shaped** (publication framing — *"Field notes on running things like production — at work, at home, and in the gap between them"*). Two deploys run side by side from the same repo until the `productionshaped.com` domain lands (next weekend at time of writing — INFRA-28 in Jira tracks the cutover).
+
+The branch shape:
+
+- `main` → RobboHome at `blog.robbohome.com` (the live reference site)
+- `productionshaped` → Production Shaped + **editorial publication treatment** at `productionshaped.robbohome.com` (masthead with rules, italic-serif strapline, monospace meta line, colophon footer, drop-caps on essays)
+
+Both branches build the same Astro project — only `src/consts.ts` and a few Header/Footer/styles differ. When `productionshaped.com` is acquired, the planned path is: add the new Cloudflare zone + tunnel ingress, update `SITE_URL` on the `productionshaped` branch, then merge `productionshaped` → `main` and retire the blog.robbohome.com subdomain (or 301 it).
+
+A short-lived "Working notebook" direction (`direction-b` branch, `notebook.robbohome.com`) ran in parallel for the comparison and has been retired — branches deleted, tunnel ingress + DNS removed, GHCR tags cleaned up. The decision was for editorial.
+
+## Sites
+
+| Brand | URL | Branch | Container on svr002 | Port |
+|---|---|---|---|---|
+| **RobboHome** (reference) | https://blog.robbohome.com | `main` | `robbohome-blog` | 3003 |
+| **Production Shaped** (brand staging) | https://productionshaped.robbohome.com | `productionshaped` | `robbohome-blog-productionshaped` | 3004 |
+
+Each container has its own data volume (`/home/robbohomebot/data/robbohome-blog{,-productionshaped}/data`) with an independent SQLite admin DB — ideas captured on one site don't appear on the other. The **agent and any reflective-capture session should keep posting to `blog.robbohome.com/api/ideas`** until the cutover; the inbox lives there and will carry forward when the productionshaped branch merges to main.
+
+Repo: `robinsondan87/robbohome-blog` (private). Stack: Astro 5 with the Node standalone adapter (nginx-removed in v0.7.0). Deploy: branch-aware GitHub Actions on a self-hosted runner — `main` → `:VERSION` image and the existing compose, `productionshaped` → `:productionshaped-VERSION` image and `docker-compose.productionshaped.yml`. Project path: `/Users/robbohomebot/Projects/openclaw-dan-blog`.
 
 ## Routes
 
@@ -284,10 +295,24 @@ Report back
 
 ## Visual / editorial conventions
 
-- **Newsprint palette**: cream `#f4f1e4` / black `#0a0908` / no chrome accent. Warm ink amber (`#8a6d2b`) used only in SVG illustrations and log bullets.
+Shared across both brand sites:
+
+- **Newsprint palette**: cream `#f4f1e4` / black `#0a0908` / no chrome accent. Warm ink amber (`#8a6d2b`) used only in pen-and-ink illustrations and log bullets. CSS vars: `--bg`, `--fg`, `--ink-accent`, `--code-bg`, `--rule`, `--rule-strong`, `--muted`, `--faint`.
 - **Type system**: Source Serif 4 body, JetBrains Mono headings + wordmark + meta, Inter nav.
-- **Editorial post layout**: uppercase mono H1, italic serif lede, mono small-caps meta line (date · reading time · tags), `⁂` asterism between major sections, opt-in drop caps via `class="has-dropcap"` on `<article>`.
-- **Illustrations**: hand-drawn SVG schematics (`HomelabSketch`, `AgentFleet`, `RackMark` mark beside wordmark, `AuthorMark` monogram on About). Toggled per-post via `heroIllustration` frontmatter.
+- **Code blocks**: Shiki `css-variables` theme driven by `--code-bg` + `--fg` + `--ink-accent` so blocks sit on cream, not slammed white-on-cream from `github-light`.
+- **Reading-time meta line**: `<date> · <X min read> · #tag #tag` rendered uppercase via `.meta { text-transform: uppercase }`.
+- **Drop cap utility**: `<article class="has-dropcap">` opt-in (existing CSS rule). On the editorial branch, applied by default in `PostLayout.astro`.
+- **`.visually-hidden`** screen-reader-only utility for pages where the masthead carries the visible page title but a semantic h1 is still wanted in the DOM.
+- **Illustrations**: hand-drawn pen-and-ink, single warm-amber line art on cream, New Yorker spot-illustration style. See *Image placeholders in drafts* for the prompt backbone. The original SVG schematics (`HomelabSketch`, `AgentFleet`) and the `heroIllustration` frontmatter enum are **removed** — every hero is now a raster illustration in `src/assets/images/posts/<slug>/`.
+- **Soft-edge raster filter**: `article figure img, article > p img, .note-body img` get two `var(--bg)`-coloured drop-shadow halos so dark-edged illustrations feather into the cream page, plus a faint dark elevation shadow.
+
+**Editorial-specific (productionshaped branch only):**
+
+- **Masthead** (`.editorial-mast` in `Header.astro`): double rule top, larger DR-mark + wordmark inline, italic-serif strapline, monospace meta line (`VOL. 1 · MAY 2026 · SHEFFIELD`), single rule below, centred nav.
+- **Home hero**: no visible H1/subhead (the masthead does that job — duplication looked like a mistake). Sr-only h1 retained for SEO/screen readers, then the three pillar bullets lead.
+- **Section headings** (`.editorial-mast ~ main .section-heading`): strong rule above + faint rule below, centred, replacing the small left-flank underline used on `main`.
+- **Colophon footer** (`.editorial-colophon` in `Footer.astro`): typography credit, publication line, link row, © line — print-colophon style.
+- **DR monogram** in the masthead is 32×32 (vs 22×22 on the RobboHome header).
 
 ## What I should NOT do without Dan's say-so
 
