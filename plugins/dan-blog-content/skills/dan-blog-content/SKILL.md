@@ -1,5 +1,5 @@
 ---
-description: Reference for Dan's personal site — Production Shaped at blog.robbohome.com (the editorial publication brand applied directly to the existing subdomain; the productionshaped.com domain pivot is still pending). Covers the admin UI, the JSON ideas API, and the dan-blog-content OpenClaw agent. Use when helping Dan with anything blog-shaped (capture, draft, publish, voice, agent troubleshooting).
+description: Reference for Dan's personal site — Production Shaped at productionshaped.com (editorial publication brand). Covers the admin UI, the JSON ideas API, and the dan-blog-content OpenClaw agent. Use when helping Dan with anything blog-shaped (capture, draft, publish, voice, agent troubleshooting).
 ---
 
 # Dan's blog — admin, API, and agent
@@ -8,15 +8,9 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 ## Brand state
 
-The site is **Production Shaped** — *"Field notes on running things like production — at work, at home, and in the gap between them."* It used to be **RobboHome** with a homelab framing; the rebrand is fully landed on `main` at `blog.robbohome.com`. The editorial publication treatment is the live look (masthead with rules, italic-serif strapline, monospace meta line, colophon footer, drop-caps on essays).
+The site is **Production Shaped** — *"Field notes on running things like production — at work, at home, and in the gap between them."* The brand replaced the original **RobboHome** homelab framing; the editorial publication treatment (masthead with rules, italic-serif strapline, monospace meta line, colophon footer, drop-caps on essays) is the live look.
 
-**Domain pivot still outstanding** — Dan plans to acquire `productionshaped.com` (INFRA-28 in Jira tracks it). When the .com lands, the planned move is:
-
-1. Add the new Cloudflare zone and tunnel ingress for `productionshaped.com` → `svr002:3003` (same container that serves blog.robbohome.com).
-2. Update `SITE_URL` in `src/consts.ts` from `https://blog.robbohome.com` to `https://productionshaped.com`.
-3. 301 the `blog.robbohome.com` subdomain to `productionshaped.com` (or keep it as an alias).
-
-No new branch or container is needed — main already carries the editorial brand.
+The `productionshaped.com` domain is acquired and live (INFRA-28 closed 2026-05-19). The Cloudflare zone is `d3a29862bd5a814c9ce1d7957df8f0aa`; apex + `www` are both CNAME-flattened, proxied, and route through the existing Cloudflare tunnel to `svr002:3003`. `blog.robbohome.com` still resolves to the same container (legacy alias) — a Cloudflare-edge 301 redirect (Single Redirect rule, configured in the dashboard) sends `blog.robbohome.com/*` and `www.productionshaped.com/*` to the apex; both legacy hosts keep working for old links but every public URL canonicalises on `productionshaped.com`.
 
 The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a` + `direction-b` branches, three extra subdomains, a "Working notebook" variant) is fully retired — branches deleted, tunnel ingress + DNS removed, GHCR tags cleaned up, staging containers destroyed.
 
@@ -24,7 +18,8 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 
 | Item | Value |
 |---|---|
-| Public URL | https://blog.robbohome.com |
+| Canonical URL | https://productionshaped.com |
+| Legacy aliases | https://blog.robbohome.com, https://www.productionshaped.com (both 301 → apex via Cloudflare Single Redirects) |
 | Branch | `main` (only branch) |
 | Container on svr002 | `robbohome-blog` (Docker, port 3003) |
 | Data volume | `/home/robbohomebot/data/robbohome-blog/data` (SQLite admin DB) |
@@ -32,6 +27,10 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 | Project path | `/Users/robbohomebot/Projects/openclaw-dan-blog` |
 | Stack | Astro 5, Node standalone adapter, nginx-removed in v0.7.0 |
 | Deploy | Pattern A on a self-hosted GitHub Actions runner — `cat VERSION` drives the image tag, deploy step writes `.env`, runs `docker compose pull && up -d` |
+
+**Cloudflare zones in use**: `productionshaped.com` (`d3a29862bd5a814c9ce1d7957df8f0aa`) for the canonical site; `robbohome.com` (`93e554d66c0ed530fbd1387ce14a62a5`) keeps the `blog.` subdomain ingress so old links don't break.
+
+**Agent endpoint note**: the OpenClaw `dan-blog-content` agent and any reflective-capture session should keep posting to `https://blog.robbohome.com/api/ideas` for now — the Single Redirect rule is scoped to public reads and explicitly leaves `/api/*` + `/admin/*` alone on the legacy hosts. If the agent's posting endpoint is ever updated, point it at `https://productionshaped.com/api/ideas` instead.
 
 ## Routes
 
