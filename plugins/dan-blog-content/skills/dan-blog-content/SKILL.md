@@ -10,7 +10,7 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 The site is **Production Shaped** — *"Field notes on running things like production — at work, at home, and in the gap between them."* The brand replaced the original **RobboHome** homelab framing; the editorial publication treatment (masthead with rules, italic-serif strapline, monospace meta line, colophon footer, drop-caps on essays) is the live look.
 
-The `productionshaped.com` domain is acquired and live (INFRA-28 closed 2026-05-19). The Cloudflare zone is `d3a29862bd5a814c9ce1d7957df8f0aa`; apex + `www` are both CNAME-flattened, proxied, and route through the existing Cloudflare tunnel to `svr002:3003`. `blog.robbohome.com` still resolves to the same container (legacy alias) — a Cloudflare-edge 301 redirect (Single Redirect rule, configured in the dashboard) sends `blog.robbohome.com/*` and `www.productionshaped.com/*` to the apex; both legacy hosts keep working for old links but every public URL canonicalises on `productionshaped.com`.
+The `productionshaped.com` domain is acquired and live (INFRA-28 closed 2026-05-19). The Cloudflare zone is `d3a29862bd5a814c9ce1d7957df8f0aa`; apex + `www` are both CNAME-flattened, proxied, and route through the existing Cloudflare tunnel to `svr002:3003`. The legacy `blog.robbohome.com` hostname was fully retired (tunnel ingress + DNS removed 2026-05-20) — Dan only had two external links pointing at it and updated them by hand. There are no host-level redirects; the only hostname serving the site is `productionshaped.com` (with `www.productionshaped.com` as an apex alias that's not 301'd).
 
 The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a` + `direction-b` branches, three extra subdomains, a "Working notebook" variant) is fully retired — branches deleted, tunnel ingress + DNS removed, GHCR tags cleaned up, staging containers destroyed.
 
@@ -19,7 +19,7 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 | Item | Value |
 |---|---|
 | Canonical URL | https://productionshaped.com |
-| Legacy aliases | https://blog.robbohome.com, https://www.productionshaped.com (both 301 → apex via Cloudflare Single Redirects) |
+| Apex alias | https://www.productionshaped.com (serves the same content; not 301'd) |
 | Branch | `main` (only branch) |
 | Container on svr002 | `robbohome-blog` (Docker, port 3003) |
 | Data volume | `/home/robbohomebot/data/robbohome-blog/data` (SQLite admin DB) |
@@ -28,9 +28,9 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 | Stack | Astro 5, Node standalone adapter, nginx-removed in v0.7.0 |
 | Deploy | Pattern A on a self-hosted GitHub Actions runner — `cat VERSION` drives the image tag, deploy step writes `.env`, runs `docker compose pull && up -d` |
 
-**Cloudflare zones in use**: `productionshaped.com` (`d3a29862bd5a814c9ce1d7957df8f0aa`) for the canonical site; `robbohome.com` (`93e554d66c0ed530fbd1387ce14a62a5`) keeps the `blog.` subdomain ingress so old links don't break.
+**Cloudflare zones in use**: `productionshaped.com` (`d3a29862bd5a814c9ce1d7957df8f0aa`) — the only zone holding ingress for the blog. The `robbohome.com` zone (`93e554d66c0ed530fbd1387ce14a62a5`) is still in the account for other services but no longer carries any blog hostname.
 
-**Agent endpoint note**: the OpenClaw `dan-blog-content` agent and any reflective-capture session should keep posting to `https://blog.robbohome.com/api/ideas` for now — the Single Redirect rule is scoped to public reads and explicitly leaves `/api/*` + `/admin/*` alone on the legacy hosts. If the agent's posting endpoint is ever updated, point it at `https://productionshaped.com/api/ideas` instead.
+**Agent endpoint**: the OpenClaw `dan-blog-content` agent and any reflective-capture session post to `https://productionshaped.com/api/ideas` with the bearer token at `~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt`. (Repointed from the retired `blog.robbohome.com` hostname on 2026-05-20.)
 
 ## Routes
 
@@ -95,7 +95,7 @@ Inserts `![](relativePath)` at the cursor on success (alt is empty by default �
 
 ```bash
 TOKEN=$(cat ~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt)
-BASE=https://blog.robbohome.com/api
+BASE=https://productionshaped.com/api
 
 curl -sS -H "Authorization: Bearer $TOKEN" $BASE/health
 curl -sS -H "Authorization: Bearer $TOKEN" "$BASE/ideas?state=idea"
@@ -200,7 +200,7 @@ The audience for the prompt is a different session, not future-you. Don't trim i
 ```
 Goal: capture blog-idea drafts based on YOUR experience working with Dan in
 this session (and any earlier session context you have). The inbox at
-https://blog.robbohome.com/admin/ideas holds Dan's existing curated ideas;
+https://productionshaped.com/admin/ideas holds Dan's existing curated ideas;
 you're adding only the noteworthy moments from your shared work.
 
 If you have the `dan-blog-content` skill installed, load it now — it has the
@@ -256,7 +256,7 @@ like a press release or a tutorial intro, don't ship. If it sounds like
 something Dan would say to a friend at a pub, you've got one.
 
 API (skip this section if the skill is loaded)
-- POST https://blog.robbohome.com/api/ideas
+- POST https://productionshaped.com/api/ideas
 - Bearer token: /Users/robbohomebot/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt
 - Headers:
     Authorization: Bearer <token>
@@ -310,7 +310,7 @@ Report back
 |---|---|
 | Capture an idea from Discord | Post in `#dan-blog`, agent calls `POST /api/ideas` |
 | Capture from anywhere | Curl `POST $BASE/ideas` with bearer token |
-| See current inbox | https://blog.robbohome.com/admin/ideas or `GET /api/ideas?state=idea` |
+| See current inbox | https://productionshaped.com/admin/ideas or `GET /api/ideas?state=idea` |
 | Develop an idea into a draft | Ask agent in `#dan-blog`; agent PATCHes `draft_markdown` + state=drafting. Include image placeholders for every image the post needs (see *Image placeholders in drafts* above). |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
 | Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads to `src/assets/images/<idea-id>/<filename>` via `POST /api/uploads`, inserts `![](relativePath)` at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment into the `![alt](...)` brackets before publishing. |
