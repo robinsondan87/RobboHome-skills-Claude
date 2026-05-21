@@ -107,7 +107,7 @@ Multiple senders → Unraid relays → svr003 receives. svr003 is purely backup 
 |---|---|---|---|
 | `pictures` / `documents` / `3dprinting` / `scc_2026` / `ssd_photos` | `/mnt/backup/<name>` | MacBook Pro | sendonly chain |
 | `backups-mac-mini` | `/mnt/backup/mac-mini` | Mac mini | openclaw target |
-| `backups-svr002` | `/mnt/backup/svr002` | svr002 | plane, geekythings, gym-coach, loop-coach, brickswap, ollama, hello-world |
+| `backups-svr002` | `/mnt/backup/svr002` | svr002 | geekythings, gym-coach, loop-coach, brickswap, ollama, hello-world (plane decommissioned 2026-05-06) |
 | `backups-svr001` | `/mnt/backup/svr001` | Unraid (svr001) | flash, appdata, docker-state, timescale |
 
 ## Recovery sequence (INFRA-2)
@@ -150,20 +150,44 @@ gunzip -c /tmp/timescale-restore.sql.gz \
   | ssh svr001 'docker exec -i -e PGPASSWORD=$POSTGRES_PASSWORD timescaledb psql -U metrics -d postgres'
 ```
 
-### Restore Plane (svr002)
+### Restore a Postgres dump from svr002 (geekythings worked example — verified 2026-05-19)
+
+This is the canonical drill for any pg_dump target on svr002. The flow is the same for `geekythings.sql.gz` (live), or future targets like `loop-coach.sql.gz` if/when a pg_dump is added.
+
 ```bash
-# Pull pg_dump
-ssh svr003 'ls -1t /mnt/backup/svr002/plane/*/plane.sql.gz | head -1' \
-  | xargs -I {} scp svr003:{} /tmp/plane-restore.sql.gz
+# 1. Pull from svr003 → Mac scratch (svr002 ↔ svr003 SSH is not configured; route via Mac)
+DRILL=/tmp/restore-drill-$(date +%Y%m%d-%H%M%S); mkdir -p "$DRILL"
+scp svr003:/mnt/backup/svr002/geekythings/$(ssh svr003 'ls /mnt/backup/svr002/geekythings/ | sort | tail -1')/geekythings.sql.gz "$DRILL/"
 
-# Restore via the existing plane-app-plane-db-1 container
-gunzip -c /tmp/plane-restore.sql.gz \
-  | ssh robbohome-server 'docker exec -i plane-app-plane-db-1 psql -U plane -d plane'
+# 2. Verify integrity against the source on svr002 (skip if svr002 is the lost host)
+SHA_OFFSITE=$(shasum -a 256 "$DRILL/geekythings.sql.gz" | awk '{print $1}')
+SHA_SOURCE=$(ssh svr002 "sha256sum /home/robbohomebot/backups/geekythings/\$(ls /home/robbohomebot/backups/geekythings/ | grep '^2' | sort | tail -1)/geekythings.sql.gz | awk '{print \$1}'")
+[ "$SHA_OFFSITE" = "$SHA_SOURCE" ] && echo "✓ offsite copy matches source" || echo "✗ drift — investigate"
 
-# Also restore the config tarball if needed
-ssh svr003 'cat /mnt/backup/svr002/plane/$(ls /mnt/backup/svr002/plane | sort | tail -1)/plane-selfhost.tar.gz' \
-  | ssh robbohome-server 'tar -C ~/data -xzf -'
+# 3. Relay to svr002 (or wherever you're restoring to)
+scp "$DRILL/geekythings.sql.gz" svr002:/tmp/
+
+# 4. Spin a throwaway Postgres container, restore, verify
+ssh svr002 'docker run -d --name restore-drill-pg \
+    -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=geekythings_restored -e POSTGRES_USER=postgres \
+    -p 35432:5432 postgres:16-alpine
+  for i in $(seq 1 30); do docker exec restore-drill-pg pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
+  zcat /tmp/geekythings.sql.gz | docker exec -i restore-drill-pg psql -U postgres -d geekythings_restored
+
+  # Row count compare against live source
+  docker exec restore-drill-pg psql -U postgres -d geekythings_restored -t -A -F"|" -c \
+    "SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE n_live_tup > 0 ORDER BY n_live_tup DESC LIMIT 10;"
+  PG_USER=$(docker exec geekythings-db sh -c "echo \$POSTGRES_USER")
+  PG_DB=$(docker exec geekythings-db sh -c "echo \$POSTGRES_DB")
+  docker exec geekythings-db psql -U "$PG_USER" -d "$PG_DB" -t -A -F"|" -c \
+    "SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE n_live_tup > 0 ORDER BY n_live_tup DESC LIMIT 10;"
+
+  # Cleanup
+  docker stop restore-drill-pg && docker rm restore-drill-pg
+  rm /tmp/geekythings.sql.gz'
 ```
+
+Real restores (not drills) replace step 4's throwaway container with the actual target container, the actual target DB name, and the source POSTGRES_USER/PASSWORD/DB — and you'd want to stop writes to that target during the replay.
 
 ### Restore Unraid `/boot/config` (full Unraid OS config — last-resort scenario)
 ```bash
@@ -179,6 +203,11 @@ ssh svr003 'ls -1t /mnt/backup/svr001/flash/*/flash-config.tar.gz | head -1' \
 
 ### Quarterly drill (INFRA-2 op habit, not code)
 Pick one target per source host. Pull from svr003 to a scratch dir. Verify the manifest sha256 matches. Extract or open. Confirm content is intact. Don't restore over live data — drill should be non-destructive.
+
+### Verified drills
+| Date | Target | Result |
+|---|---|---|
+| 2026-05-19 | svr002 / geekythings pg_dump | sha256 match svr003 ↔ svr002 source ↔ Mac relay (`5b9a170e…3ea35`). Restore into throwaway `postgres:16-alpine` clean. Row counts identical: products=193, ukca_documents=16, product_pricing=13, events=3, supplies=2. |
 
 ## Related Skills
 - `skills/svr002/SKILL.md` — primary home server

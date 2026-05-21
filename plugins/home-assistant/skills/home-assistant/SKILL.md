@@ -81,6 +81,7 @@ source ~/data/config/load-secrets.sh
 
 ssh svr001 docker run -d --name=unraid-mcp --restart=unless-stopped \
   -p 6970:6970 \
+  --memory 256m --cpus 0.5 \
   -e UNRAID_API_URL=http://192.168.1.200/graphql \
   -e UNRAID_API_KEY="$UNRAID_API_KEY" \
   -e UNRAID_MCP_BEARER_TOKEN="$UNRAID_MCP_BEARER_TOKEN" \

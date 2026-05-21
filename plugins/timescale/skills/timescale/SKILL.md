@@ -17,6 +17,23 @@ A single Postgres + TimescaleDB extension instance on Unraid, used as the source
 | Data dir on host | `/mnt/user/appdata/timescaledb/data` |
 | Creds | SOPS keys `TIMESCALE_HOST` / `TIMESCALE_PORT` / `TIMESCALE_USER` / `TIMESCALE_PASS` / `TIMESCALE_DB` |
 
+## Deploy
+```bash
+source ~/data/config/load-secrets.sh
+ssh svr001 "
+docker rm -f timescaledb 2>/dev/null
+mkdir -p /mnt/user/appdata/timescaledb/data
+docker run -d --name=timescaledb --restart=unless-stopped \
+  -p 5432:5432 \
+  --memory 2g --cpus 2.0 \
+  -v /mnt/user/appdata/timescaledb/data:/var/lib/postgresql/data \
+  -e POSTGRES_USER=$TIMESCALE_USER \
+  -e POSTGRES_PASSWORD=$TIMESCALE_PASS \
+  -e POSTGRES_DB=$TIMESCALE_DB \
+  --label net.unraid.docker.managed=dockerman \
+  timescale/timescaledb:latest-pg16"
+```
+
 Quick psql shell:
 ```bash
 source ~/data/config/load-secrets.sh

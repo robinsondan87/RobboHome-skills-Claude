@@ -21,6 +21,7 @@ ssh svr001 "mkdir -p /mnt/user/appdata/grafana && chown -R 472:472 /mnt/user/app
 docker rm -f grafana 2>/dev/null
 docker run -d --name=grafana --restart=unless-stopped \
   -p 3030:3000 \
+  --memory 768m --cpus 1.0 \
   -v /mnt/user/appdata/grafana:/var/lib/grafana \
   -e GF_SECURITY_ADMIN_USER=admin \
   -e GF_SECURITY_ADMIN_PASSWORD=changeme \

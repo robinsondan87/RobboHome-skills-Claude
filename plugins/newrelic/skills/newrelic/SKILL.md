@@ -40,6 +40,7 @@ source ~/data/config/load-secrets.sh
 ssh svr001 docker run -d --name newrelic-infra \
   --restart unless-stopped \
   --network=host --pid=host --privileged --cap-add=SYS_PTRACE \
+  --memory 512m --cpus 1.0 \
   -v /:/host:ro \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e NRIA_LICENSE_KEY="$NEW_RELIC_LICENSE_KEY" \
