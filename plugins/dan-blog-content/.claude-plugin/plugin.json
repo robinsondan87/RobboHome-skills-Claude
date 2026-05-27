@@ -1,6 +1,6 @@
 {
   "name": "dan-blog-content",
-  "version": "1.0.0",
-  "description": "Reference for the RobboHome blog stack — admin UI, JSON API, and the dan-blog-content OpenClaw agent that captures and develops ideas.",
+  "version": "1.1.0",
+  "description": "Production Shaped (productionshaped.com) — admin UI, Ideas JSON API, image placeholder convention, voice rules, and the dan-blog-content OpenClaw agent. Use whenever Dan mentions his blog, a blog idea/draft/post, or Production Shaped.",
   "author": { "name": "robinsondan87" }
 }

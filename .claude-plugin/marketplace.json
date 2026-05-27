@@ -18,6 +18,10 @@
       "source": "./plugins/cloudflare-tunnel"
     },
     {
+      "name": "dan-blog-content",
+      "source": "./plugins/dan-blog-content"
+    },
+    {
       "name": "deploy",
       "source": "./plugins/deploy"
     },

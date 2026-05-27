@@ -1,5 +1,5 @@
 ---
-description: Reference for Dan's personal site — Production Shaped at productionshaped.com (editorial publication brand). Covers the admin UI, the JSON ideas API, and the dan-blog-content OpenClaw agent. Use when helping Dan with anything blog-shaped (capture, draft, publish, voice, agent troubleshooting).
+description: Dan's personal site Production Shaped (productionshaped.com). Use whenever Dan mentions "blog", "the blog", "my blog", "Production Shaped", "productionshaped", "productionshaped.com", "blog post", "blog idea", "blog draft", "draft a post", "publish a post", "add to the site", "/admin/ideas", "the inbox", "dan-blog", or the dan-blog-content agent. Also use for blog voice rules, image placeholder convention, frontmatter, Ideas JSON API (POST/PATCH /api/ideas), admin UI workflows, and recovery for the Discord blog agent. Production Shaped is an editorial publication brand replacing the older RobboHome framing.
 ---
 
 # Dan's blog — admin, API, and agent
