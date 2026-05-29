@@ -1,6 +1,6 @@
 {
   "name": "deploy-geekythings",
   "version": "1.0.0",
-  "description": "Deploy GeekyThings product catalogue to svr002 via CI/CD.",
+  "description": "Deploy GeekyThings product catalogue to scc_contabo via CI/CD.",
   "author": { "name": "robinsondan87" }
 }

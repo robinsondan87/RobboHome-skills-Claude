@@ -2,9 +2,9 @@
 description: server-bootstrap skill for RobboHome automation.
 ---
 
-# Skill: Server Bootstrap (svr002)
+# Skill: Server Bootstrap (scc_contabo)
 
-One-time setup script to configure a fresh Ubuntu server as svr002.
+One-time setup script to configure a fresh Ubuntu server as scc_contabo.
 
 ## Run the bootstrap
 ```bash
@@ -40,16 +40,16 @@ bash server-bootstrap.sh
 ## Current server
 | | |
 |---|---|
-| Hostname | svr002 |
+| Hostname | scc_contabo |
 | IP | 161.97.66.102 |
 | User | robbohomebot |
 | SSH | `ssh scc_contabo` (alias) or `ssh scc_contabo` |
-| Key | `~/.ssh/svr002_remote` (ed25519, comment: svr002-remote) |
+| Key | `~/.ssh/svr002_remote` (ed25519, comment: scc_contabo-remote) |
 | OS | Ubuntu |
 
 ## SSH config entry (~/.ssh/config)
 ```
-Host svr002 robbohome-server
+Host scc_contabo scc_contabo
   HostName 161.97.66.102
   User robbohomebot
   IdentityFile ~/.ssh/svr002_remote

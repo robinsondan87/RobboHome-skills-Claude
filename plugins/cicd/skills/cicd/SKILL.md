@@ -5,15 +5,15 @@ description: cicd skill for RobboHome automation.
 # Skill: CI/CD Pipeline
 
 ## Overview
-Push to main → GitHub Actions on svr002 runner → builds Docker image → pushes to ghcr.io → deploys on svr002
+Push to main → GitHub Actions on scc_contabo runner → builds Docker image → pushes to ghcr.io → deploys on scc_contabo
 
 ## Repos
 - App code: robbohome-hello-world (template for all projects)
-- Runner: robbohome-server (labels: robbohome, homeserver), Default group
+- Runner: scc_contabo (labels: robbohome, homeserver), Default group
 
 ## Deploy a new version
 ```bash
-cd ~/data/projects/PROJECT_NAME
+cd /opt/stacks/projects/PROJECT_NAME
 make bump-patch     # or bump-minor / bump-major
 git push && git push --tags
 ```
@@ -40,14 +40,14 @@ gh api repos/robinsondan87/robbohome-hello-world/actions/runners/registration-to
 
 ## GitHub Secrets (set on each new repo)
 ```bash
-source ~/data/config/load-secrets.sh
+source /opt/stacks/config/load-secrets.sh
 gh secret set CLOUDFLARE_API_TOKEN --repo robinsondan87/REPO --body "$CLOUDFLARE_API_TOKEN"
 gh secret set CLOUDFLARE_ACCOUNT_ID --repo robinsondan87/REPO --body "$CLOUDFLARE_ACCOUNT_ID"
 gh secret set CLOUDFLARE_TUNNEL_ID --repo robinsondan87/REPO --body "$CLOUDFLARE_TUNNEL_ID"
 ```
 
 ## New project boilerplate
-Template at ~/data/infrastructure/templates/node-app/
+Template at /opt/stacks/infrastructure/templates/node-app/
 Placeholders: {{PROJECT_NAME}}, {{GITHUB_USERNAME}}, {{PORT}}
 
 ## Known issues / fixes applied

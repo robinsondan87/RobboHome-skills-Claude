@@ -75,7 +75,7 @@ Two MCP servers are registered with Claude Code (user scope, in `~/.claude.json`
 ### unraid MCP
 [`jmagar/unraid-mcp`](https://github.com/jmagar/unraid-mcp), Docker container on Unraid.
 
-Deployment (run from a host with secrets loaded — Mac or svr002):
+Deployment (run from a host with secrets loaded — Mac or scc_contabo):
 ```bash
 source ~/data/config/load-secrets.sh
 
@@ -109,6 +109,6 @@ Both endpoints are LAN-only. For use from the Mac off-network:
 Stored SOPS-encrypted in `~/data/config/.secrets.env`. Load via `source ~/data/config/load-secrets.sh` (see `skills/secrets/SKILL.md`). Relevant keys for this skill: `UNRAID_API_KEY`, `UNRAID_MCP_BEARER_TOKEN`.
 
 ## Related Skills
-- `skills/svr002/SKILL.md` — primary home server, secrets live here
+- `skills/scc_contabo/SKILL.md` — primary home server, secrets live here
 - `skills/docker-management/SKILL.md` — Unraid container management
 - `skills/cloudflare-tunnel/SKILL.md` — for exposing MCP remotely

@@ -4,7 +4,7 @@ description: cloudflare-tunnel skill for RobboHome automation.
 
 # Skill: Cloudflare Tunnel & Zero Trust
 
-Exposes self-hosted services on svr002 publicly via Cloudflare Tunnel without opening ports on the router.
+Exposes self-hosted services on scc_contabo publicly via Cloudflare Tunnel without opening ports on the router.
 
 ## Credentials
 Stored SOPS-encrypted in `~/data/config/.secrets.env`. Load via `source ~/data/config/load-secrets.sh`. Keys:
@@ -19,7 +19,7 @@ GOOGLE_OAUTH_CLIENT_SECRET=...
 ```
 
 ## How it works
-1. `cloudflared` daemon runs on svr002 and maintains an outbound tunnel to Cloudflare
+1. `cloudflared` daemon runs on scc_contabo and maintains an outbound tunnel to Cloudflare
 2. Cloudflare routes `*.robbohome.com` DNS to the tunnel
 3. Cloudflare Zero Trust Access (optional) adds email-based auth in front of an app
 4. The app itself handles its own auth (Bearer tokens etc.)
@@ -69,6 +69,6 @@ curl -X DELETE "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUN
 | GeekyThings | geekythings.robbohome.com | Yes | App ID: `119c16e9-eeab-48af-ba7c-51e970ba1a34`; `/files-token/*` has a bypass app (`45000b6f-89c1-4583-8e10-6c305815a4ac`) |
 
 ## Troubleshooting
-- **502/tunnel error**: Check `cloudflared` is running on svr002 — `ssh robbohomebot@161.97.66.102 'systemctl status cloudflared'`
+- **502/tunnel error**: Check `cloudflared` is running on scc_contabo — `ssh robbohomebot@161.97.66.102 'systemctl status cloudflared'`
 - **Still showing Access login after removing**: Cloudflare propagation takes ~30s, or clear browser cookies
 - **API returns 302 on requests**: Cloudflare Access is blocking — remove the Access app or add a bypass policy for `/api/*`

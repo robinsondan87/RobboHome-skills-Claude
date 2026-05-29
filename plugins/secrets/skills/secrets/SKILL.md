@@ -4,7 +4,7 @@ description: RobboHome shared secrets management — SOPS + age, multi-machine v
 
 # Skill: RobboHome Secrets Management
 
-Single source of truth for shared credentials across every machine that runs RobboHome work (Mac, svr002, and up to ~5 hosts). Secrets live SOPS-encrypted in a git repo so they can be safely pushed to GitHub and pulled by any authorised machine.
+Single source of truth for shared credentials across every machine that runs RobboHome work (Mac, scc_contabo, and up to ~5 hosts). Secrets live SOPS-encrypted in a git repo so they can be safely pushed to GitHub and pulled by any authorised machine.
 
 ## Architecture in one paragraph
 
@@ -61,7 +61,7 @@ On any other machine that runs OpenClaw (currently just the Mac, but the encrypt
 
 ## How shared SSH keys are distributed
 
-The user's "fleet" SSH keypair (currently `id_ed25519`, used to ssh into svr001/svr002/svr003 and to talk to GitHub) lives in SOPS as `ssh/id_ed25519.sops` (binary-mode encrypted) plus the corresponding `ssh/id_ed25519.pub` (plain). After a new machine has its age key and has cloned the repo, run:
+The user's "fleet" SSH keypair (currently `id_ed25519`, used to ssh into svr001/scc_contabo/svr003 and to talk to GitHub) lives in SOPS as `ssh/id_ed25519.sops` (binary-mode encrypted) plus the corresponding `ssh/id_ed25519.pub` (plain). After a new machine has its age key and has cloned the repo, run:
 
 ```bash
 bash ~/data/config/install-ssh-keys.sh
@@ -237,7 +237,7 @@ git push
 ```
 **Important:** also rotate every secret value (and the SSH keys themselves). The retired machine still has access to historical git versions of every encrypted file and could decrypt them with its old key. Concretely:
 - `sops .secrets.env` and `sops .secrets.openclaw.json` — change every value, save.
-- For each `ssh/*.sops`: regenerate the keypair (`ssh-keygen -t ed25519 -f /tmp/newkey`), re-encrypt, push, then re-deploy on every machine via `install-ssh-keys.sh`, then update `authorized_keys` on every remote that trusted the old public key (svr001/svr002/svr003, GitHub, etc.). SSH rotation is the heaviest of the three — plan it deliberately.
+- For each `ssh/*.sops`: regenerate the keypair (`ssh-keygen -t ed25519 -f /tmp/newkey`), re-encrypt, push, then re-deploy on every machine via `install-ssh-keys.sh`, then update `authorized_keys` on every remote that trusted the old public key (svr001/scc_contabo/svr003, GitHub, etc.). SSH rotation is the heaviest of the three — plan it deliberately.
 
 ---
 
@@ -363,7 +363,7 @@ Centralise the value in `~/.openclaw/secrets.json` (which is already SOPS-manage
 ### Discovery on a new machine
 If a machine has secrets in scattered `.env` files / `~/.bashrc` exports / docker-compose `environment:` blocks that aren't yet in the canonical store, audit and merge before standardising. The cross-machine merge prompts for this live with the user; ask if you need them.
 
-### Consuming on Linux servers (svr002 etc.)
+### Consuming on Linux servers (scc_contabo etc.)
 - Same helper, same path — `~/data/config/` clones identically.
 - If `$EDITOR` isn't set: `EDITOR=nano sops .secrets.env`.
 - For non-interactive scripts (systemd, cron), use `sops exec-env`:

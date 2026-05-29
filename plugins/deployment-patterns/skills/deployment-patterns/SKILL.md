@@ -6,23 +6,23 @@ description: deployment-patterns skill for RobboHome automation.
 
 Two deployment patterns are used across robbohome projects. Pick the right one before starting a new project.
 
-## Pattern A — Server App (Node.js / Docker → svr002)
+## Pattern A — Server App (Node.js / Docker → scc_contabo)
 
 Used for: APIs, web dashboards, background services.
 
 ```
-Code change → git push → GitHub Actions → Docker build → ghcr.io → svr002 pull + restart
+Code change → git push → GitHub Actions → Docker build → ghcr.io → scc_contabo pull + restart
 ```
 
 **Requirements:**
 - Dockerfile + docker-compose.prod.yml
 - `.github/workflows/deploy.yml`
-- Self-hosted GitHub Actions runner on svr002
+- Self-hosted GitHub Actions runner on scc_contabo
 - `make deploy` or `/deploy-gym` skill triggers the pipeline
 
 **Setup steps:**
 1. Create GitHub repo
-2. Register GitHub Actions runner on svr002 — see `skills/register-runner/SKILL.md`
+2. Register GitHub Actions runner on scc_contabo — see `skills/register-runner/SKILL.md`
 3. Add `deploy.yml` workflow (use gym-coach as template: `.github/workflows/deploy.yml`)
 4. Set GitHub repo secrets: `GHCR_TOKEN`, `SERVER_HOST`, `SERVER_USER`, `APP_PASSWORD`, etc.
 

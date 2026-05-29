@@ -1,6 +1,6 @@
 {
-  "name": "svr002",
+  "name": "scc_contabo",
   "version": "1.0.0",
-  "description": "svr002 skill for RobboHome automation.",
+  "description": "scc_contabo skill for RobboHome automation.",
   "author": { "name": "robinsondan87" }
 }

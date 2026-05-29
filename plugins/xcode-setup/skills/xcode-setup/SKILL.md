@@ -72,7 +72,7 @@ When Swift files already exist (e.g. scaffolded before Xcode was installed):
 - `skills/deployment-patterns/SKILL.md` — when to use iOS vs server deployment
 
 ## SDLC pattern for iOS projects
-Unlike server apps (Docker + GitHub Actions on svr002), iOS projects:
+Unlike server apps (Docker + GitHub Actions on scc_contabo), iOS projects:
 - Build locally on Mac Mini via Fastlane
 - Deploy direct to device via USB/WiFi
 - No GitHub Actions runner needed

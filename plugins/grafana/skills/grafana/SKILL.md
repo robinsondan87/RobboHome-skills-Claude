@@ -101,7 +101,7 @@ Multi-select dropdowns at the top of the dashboard. The custom-variable pattern 
   "list": [
     {
       "name": "host", "type": "custom",
-      "query": "dans-macbook-pro,robbo-mac-mini,svr001,svr002,svr003",
+      "query": "dans-macbook-pro,robbo-mac-mini,svr001,scc_contabo,svr003",
       "includeAll": true, "multi": true
     },
     {

@@ -26,5 +26,5 @@ description: deploy skill for RobboHome automation.
 ## GUI options available on server
   Start GNOME:   sudo systemctl start graphical.target
   Stop GNOME:    sudo systemctl isolate multi-user.target
-  Cockpit:       http://svr002:9090
-  Portainer:     http://svr002:9000
+  Cockpit:       http://scc_contabo:9090
+  Portainer:     http://scc_contabo:9000

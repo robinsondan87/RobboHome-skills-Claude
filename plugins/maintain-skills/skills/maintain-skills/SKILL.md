@@ -144,7 +144,7 @@ ls /tmp/RobboHome-skills-Claude/plugins/
 
 See marketplace.json for the authoritative list. As of April 2026:
 
-**Infrastructure:** cicd, cloudflare, cloudflare-tunnel, deploy, deployment-patterns, docker-management, gpu, init-project, ollama, openclaw-update, portainer, register-runner, server-bootstrap, server-setup, svr002
+**Infrastructure:** cicd, cloudflare, cloudflare-tunnel, deploy, deployment-patterns, docker-management, gpu, init-project, ollama, openclaw-update, portainer, register-runner, server-bootstrap, server-setup, scc_contabo
 
 **iOS:** ios-fastlane, ios-sideload, xcode-setup
 

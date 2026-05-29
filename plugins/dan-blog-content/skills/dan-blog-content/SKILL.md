@@ -10,7 +10,7 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 The site is **Production Shaped** — *"Field notes on running things like production — at work, at home, and in the gap between them."* The brand replaced the original **RobboHome** homelab framing; the editorial publication treatment (masthead with rules, italic-serif strapline, monospace meta line, colophon footer, drop-caps on essays) is the live look.
 
-The `productionshaped.com` domain is acquired and live (INFRA-28 closed 2026-05-19). The Cloudflare zone is `d3a29862bd5a814c9ce1d7957df8f0aa`; apex + `www` are both CNAME-flattened, proxied, and route through the existing Cloudflare tunnel to `svr002:3003`. The legacy `blog.robbohome.com` hostname was fully retired (tunnel ingress + DNS removed 2026-05-20) — Dan only had two external links pointing at it and updated them by hand. There are no host-level redirects; the only hostname serving the site is `productionshaped.com` (with `www.productionshaped.com` as an apex alias that's not 301'd).
+The `productionshaped.com` domain is acquired and live (INFRA-28 closed 2026-05-19). The Cloudflare zone is `d3a29862bd5a814c9ce1d7957df8f0aa`; apex + `www` are both CNAME-flattened, proxied, and route through the existing Cloudflare tunnel to `scc_contabo:3003`. The legacy `blog.robbohome.com` hostname was fully retired (tunnel ingress + DNS removed 2026-05-20) — Dan only had two external links pointing at it and updated them by hand. There are no host-level redirects; the only hostname serving the site is `productionshaped.com` (with `www.productionshaped.com` as an apex alias that's not 301'd).
 
 The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a` + `direction-b` branches, three extra subdomains, a "Working notebook" variant) is fully retired — branches deleted, tunnel ingress + DNS removed, GHCR tags cleaned up, staging containers destroyed.
 
@@ -21,7 +21,7 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 | Canonical URL | https://productionshaped.com |
 | Apex alias | https://www.productionshaped.com (serves the same content; not 301'd) |
 | Branch | `main` (only branch) |
-| Container on svr002 | `robbohome-blog` (Docker, port 3003) |
+| Container on scc_contabo | `robbohome-blog` (Docker, port 3003) |
 | Data volume | `/home/robbohomebot/data/robbohome-blog/data` (SQLite admin DB) |
 | Repo | `robinsondan87/robbohome-blog` (private) |
 | Project path | `/Users/robbohomebot/Projects/openclaw-dan-blog` |

@@ -5,8 +5,8 @@ description: ollama skill for RobboHome automation.
 # Skill: Ollama & Open WebUI Management
 
 ## Access
-- Ollama API: http://svr002:11434 (localhost only, not exposed externally)
-- Open WebUI: http://svr002:3001 / https://ai.robbohome.com (Google auth)
+- Ollama API: http://scc_contabo:11434 (localhost only, not exposed externally)
+- Open WebUI: http://scc_contabo:3001 / https://ai.robbohome.com (Google auth)
 - Open WebUI credentials: `OPENWEBUI_USERNAME` / `OPENWEBUI_PASS` from `source ~/data/config/load-secrets.sh`
 
 ## Installed models
@@ -51,7 +51,7 @@ ssh scc_contabo 'curl -s http://localhost:11434/api/show \
 ```
 
 ## Docker compose location
-~/data/ollama/docker-compose.yml on svr002
+~/data/ollama/docker-compose.yml on scc_contabo
 ~/data/infrastructure/ollama/docker-compose.yml on Mac (source of truth)
 
 ## Config

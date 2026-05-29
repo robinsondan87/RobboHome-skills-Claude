@@ -2,16 +2,16 @@
 description: docker-management skill for RobboHome automation.
 ---
 
-# Skill: Docker Management on svr002
+# Skill: Docker Management on scc_contabo
 
-Managing Docker containers on svr002 (161.97.66.102).
+Managing Docker containers on scc_contabo (161.97.66.102).
 
 ## Access
 ```bash
 ssh scc_contabo
 # or: ssh scc_contabo
 ```
-Key: `~/.ssh/svr002_remote` — configured in `~/.ssh/config` as `svr002 / robbohome-server`.
+Key: `~/.ssh/svr002_remote` — configured in `~/.ssh/config` as `scc_contabo / scc_contabo`.
 
 ## Common commands
 
@@ -55,8 +55,8 @@ ssh scc_contabo 'docker system prune -f'
 - Credentials: `admin` / `PORTAINER_PASS` from `source ~/data/config/load-secrets.sh`
 - Useful for: viewing container stats, logs, volumes without SSH
 
-## Data volumes on svr002
-All app data is stored under `~/data/` on svr002:
+## Data volumes on scc_contabo
+All app data is stored under `~/data/` on scc_contabo:
 ```
 /home/robbohomebot/data/
 ├── gym-coach/
@@ -75,7 +75,7 @@ All app data is stored under `~/data/` on svr002:
 | plane (12 containers under `plane-app-*`) | 18080 (proxy) | ~/data/plane-selfhost/plane-app/docker-compose.yaml | plane.robbohome.com |
 
 ## Plane (project management)
-Self-hosted [makeplane/plane](https://github.com/makeplane/plane) — Linear/Jira hybrid for tracking infra TODOs as issues. Stack lives at `~/data/plane-selfhost/` on svr002, started via `./setup.sh` (option 1 = install, 2 = start, 3 = stop).
+Self-hosted [makeplane/plane](https://github.com/makeplane/plane) — Linear/Jira hybrid for tracking infra TODOs as issues. Stack lives at `~/data/plane-selfhost/` on scc_contabo, started via `./setup.sh` (option 1 = install, 2 = start, 3 = stop).
 
 Stack composition: proxy (`plane-app-proxy-1` listening 18080→80), web/admin/space/live frontends, api + workers + beat-worker + migrator (Django), plane-db (Postgres 15.7), plane-redis, plane-mq (RabbitMQ), plane-minio (S3 for attachments).
 

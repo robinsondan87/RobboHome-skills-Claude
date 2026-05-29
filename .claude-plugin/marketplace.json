@@ -90,8 +90,8 @@
       "source": "./plugins/server-setup"
     },
     {
-      "name": "svr002",
-      "source": "./plugins/svr002"
+      "name": "scc_contabo",
+      "source": "./plugins/scc_contabo"
     },
     {
       "name": "svr003",

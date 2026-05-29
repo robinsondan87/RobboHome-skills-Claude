@@ -140,4 +140,4 @@ Every Phase 2 write is gated by a preview→confirm token:
 ## Related skills
 
 - `home-assistant` — sister automation skill (HA + Unraid MCPs, similar wiring patterns)
-- `svr002` — primary home server (where other secrets live, but **not** UniFi creds — those are on this Mac in OpenClaw's store)
+- `scc_contabo` — primary home server (where other secrets live, but **not** UniFi creds — those are on this Mac in OpenClaw's store)

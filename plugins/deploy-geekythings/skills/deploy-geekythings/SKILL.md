@@ -1,9 +1,9 @@
 ---
-description: Deploy GeekyThings product catalogue to svr002 via CI/CD — bump version, push, and monitor the GitHub Actions workflow.
+description: Deploy GeekyThings product catalogue to scc_contabo via CI/CD — bump version, push, and monitor the GitHub Actions workflow.
 allowed-tools: Bash(git*) Bash(gh*) Bash(make*)
 ---
 
-# Deploy GeekyThings to svr002
+# Deploy GeekyThings to scc_contabo
 
 ## IMPORTANT: CI/CD only triggers on version tags
 
@@ -35,7 +35,7 @@ git push && git push --tags
 gh run watch --repo robinsondan87/GeekyThingsProductCatalogue
 ```
 
-## Check logs on svr002
+## Check logs on scc_contabo
 ```bash
 make logs
 ```
@@ -71,12 +71,12 @@ grep -v '\\restrict\|\\unrestrict' /tmp/geekythings-dump.sql > /tmp/geekythings-
 rsync -az -e "ssh -p 2223" root@192.168.1.200:/mnt/user/data/geekythings/Products/ /tmp/geekythings-products/
 
 # Then to new server
-rsync -az /tmp/geekythings-products/ robbohome-server:/home/robbohomebot/data/geekythings/Products/
+rsync -az /tmp/geekythings-products/ scc_contabo:/home/robbohomebot/data/geekythings/Products/
 ```
 
 ### 3. Create data directories and start Postgres on new server
 ```bash
-ssh scc_contabo 'mkdir -p ~/data/geekythings/Products ~/data/geekythings/db'
+ssh scc_contabo 'mkdir -p /opt/stacks/geekythings/Products /opt/stacks/geekythings/db'
 
 # Temporarily start just the DB to restore into
 ssh scc_contabo 'cd ~/data/geekythings && docker compose -f docker-compose.prod.yml up -d db'
@@ -98,8 +98,8 @@ See `skills/register-runner/SKILL.md` for full steps.
 ```bash
 # Get registration token
 gh api repos/robinsondan87/GeekyThingsProductCatalogue/actions/runners/registration-token --method POST --jq '.token'
-# Runner name: robbohome-server-geekythings
-# Directory: ~/actions-runner-geekythings/
+# Runner name: scc_contabo-geekythings
+# Directory: /opt/runners/geekythings/
 ```
 
 ### 7. Deploy via CI/CD
@@ -125,7 +125,7 @@ Current allowed emails:
 
 To add a user:
 ```bash
-source ~/data/config/.secrets
+source /opt/stacks/config/.secrets
 curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/access/apps/119c16e9-eeab-48af-ba7c-51e970ba1a34/policies/<POLICY_ID>" \
   -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -144,14 +144,14 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOU
 | Internal URL | http://161.97.66.102:3002 |
 | Port | 3002 (container port 8555) |
 | GHCR image | `ghcr.io/robinsondan87/geekythings` |
-| Data volumes | `~/data/geekythings/Products/` (~10GB), `~/data/geekythings/db/` |
+| Data volumes | `/opt/stacks/geekythings/Products/` (~10GB), `/opt/stacks/geekythings/db/` |
 | DB creds | geekythings / geekythings / geekythings |
 | ZT App ID | `119c16e9-eeab-48af-ba7c-51e970ba1a34` |
 | Token bypass ZT App | `45000b6f-89c1-4583-8e10-6c305815a4ac` (for /files-token/ — no longer needed) |
-| Runner name | `robbohome-server-geekythings` |
-| Runner dir | `~/actions-runner-geekythings/` on svr002 |
+| Runner name | `scc_contabo-geekythings` |
+| Runner dir | `/opt/runners/geekythings/` on scc_contabo |
 
 ## Notes
-- Data volumes at `~/data/geekythings/` on svr002 — never touched by deploys
+- Data volumes at `/opt/stacks/geekythings/` on scc_contabo — never touched by deploys
 - Auth: username/password auth enabled via AUTH_USERNAME/AUTH_PASSWORD env vars
 - See `skills/bambu-integration/SKILL.md` before attempting any Bambu Studio integration

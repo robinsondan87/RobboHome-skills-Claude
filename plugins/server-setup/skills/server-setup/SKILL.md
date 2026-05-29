@@ -15,8 +15,8 @@ When asked to set up or bootstrap the RobboHome home server:
 5. Verify post-reboot:
    - nvidia-smi shows GPU
    - docker run --rm --gpus all nvidia/cuda nvidia-smi works
-   - Cockpit at http://svr002:9090
-   - Portainer at http://svr002:9000
+   - Cockpit at http://scc_contabo:9090
+   - Portainer at http://scc_contabo:9000
    - GitHub runner shows Idle in repo settings
 6. Deploy Ollama stack: cd ~/data/ollama && docker compose up -d
 7. Add Cloudflare published routes for new services

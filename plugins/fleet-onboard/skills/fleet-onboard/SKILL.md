@@ -4,7 +4,7 @@ description: Onboard a new host into the RobboHome fleet — SSH, SOPS, New Reli
 
 # Skill: Fleet Onboard
 
-Adds an existing host (Linux server, Mac, or Unraid box that already has an OS + working SSH) into the RobboHome fleet. Bare-metal OS install is out of scope — see `skills/server-bootstrap/SKILL.md` for the svr002-style Ubuntu start.
+Adds an existing host (Linux server, Mac, or Unraid box that already has an OS + working SSH) into the RobboHome fleet. Bare-metal OS install is out of scope — see `skills/server-bootstrap/SKILL.md` for the scc_contabo-style Ubuntu start.
 
 The contract once onboarding is complete:
 - Reachable as a named SSH alias from every other fleet host that needs it
@@ -35,7 +35,7 @@ Record the Tailscale IP and add it to `skills/svr003/SKILL.md` → "Tailscale ne
 
 ### 2a. Add a Host block to the shared SSH config
 
-Edit `~/data/config/ssh/config` (the canonical shared file) on the Mac, add a new block:
+Edit `/opt/stacks/config/ssh/config` (the canonical shared file) on the Mac, add a new block:
 
 ```
 Host <short-name>
@@ -47,14 +47,14 @@ Host <short-name>
 
 Commit + push to `robbohome-config`. The fleet's 15-min puller (INFRA-16) propagates the new block to every other host automatically — no manual fan-out.
 
-Each host already does `Include ~/data/config/ssh/config` from its `~/.ssh/config` (INFRA-18). If a brand-new host doesn't yet, add that line first.
+Each host already does `Include /opt/stacks/config/ssh/config` from its `~/.ssh/config` (INFRA-18). If a brand-new host doesn't yet, add that line first.
 
 ### 2b. Install the shared SSH key
 
 On the new host, after `~/data/config` is in place (Layer 3):
 
 ```bash
-bash ~/data/config/install-ssh-keys.sh
+bash /opt/stacks/config/install-ssh-keys.sh
 ```
 
 Idempotent. Decrypts the SOPS-encrypted private keys into `~/.ssh/`, copies pubkeys alongside, and appends the shared pubkey to `~/.ssh/authorized_keys` only if not already present (compares by key body, not by comment).
@@ -97,7 +97,7 @@ chmod 600 ~/.config/sops/age/keys.txt
 ```bash
 mkdir -p ~/data
 git clone git@github.com:robinsondan87/robbohome-config.git ~/data/config
-source ~/data/config/load-secrets.sh
+source /opt/stacks/config/load-secrets.sh
 echo "${JIRA_BASE_URL:-MISSING}"   # smoke test — should print the Jira URL
 ```
 
@@ -157,7 +157,7 @@ Install per the OS, then drop the trimmed config (no process metrics, 30s sample
 # Linux apt — see skills/newrelic/SKILL.md for the exact key/install sequence
 # Debian Trixie arm64 needs the [trusted=yes] workaround.
 
-source ~/data/config/load-secrets.sh
+source /opt/stacks/config/load-secrets.sh
 
 sudo tee /etc/newrelic-infra.yml >/dev/null <<EOF
 license_key: $NEW_RELIC_LICENSE_KEY
@@ -183,7 +183,7 @@ For Mac, the equivalent YAML lives at `/opt/homebrew/etc/newrelic-infra/newrelic
 
 After ~5 minutes verify the host appears:
 ```bash
-source ~/data/config/load-secrets.sh
+source /opt/stacks/config/load-secrets.sh
 curl -s -X POST https://api.eu.newrelic.com/graphql \
   -H "API-Key: $NEW_RELIC_USER_API_KEY" -H 'Content-Type: application/json' \
   -d '{"query":"{actor{account(id:4304361){nrql(query:\"SELECT latest(timestamp) FROM SystemSample SINCE 10 minutes ago FACET hostname\"){results}}}}"}' \
@@ -192,7 +192,7 @@ curl -s -X POST https://api.eu.newrelic.com/graphql \
 
 ## Layer 5 — Backup target
 
-Only if the host has writable data worth fanning out (svr002, the Mac, Unraid itself — not single-purpose VPSes).
+Only if the host has writable data worth fanning out (scc_contabo, the Mac, Unraid itself — not single-purpose VPSes).
 
 ### 5a. Install Syncthing
 
@@ -226,27 +226,27 @@ Use the same folder ID across all three so the syncs link automatically.
 
 ### 5c. Write `backup.sh` + schedule
 
-Copy `~/data/scripts/backup.sh` from svr002 (or `~/.openclaw/scripts/backup.sh` from the Mac) as a starting template. The contract per target:
+Copy `/opt/stacks/scripts/backup.sh` from scc_contabo (or `~/.openclaw/scripts/backup.sh` from the Mac) as a starting template. The contract per target:
 - Output `~/backups/<target>/<DATE>/`
 - 7-day retention via `prune_target`
 - Wrap target invocation in a subshell: `if ( "$fn" ); then ...` — so a failed target's `die`/`exit` doesn't kill the orchestrator (see "Known gotcha" in [[reference_backup_architecture]])
 
 Schedule nightly:
 - **Mac**: LaunchAgent `~/Library/LaunchAgents/ai.openclaw.backup.plist`, 02:30 local
-- **Linux**: crontab `15 2 * * * /bin/bash ~/data/scripts/backup.sh all`
+- **Linux**: crontab `15 2 * * * /bin/bash /opt/stacks/scripts/backup.sh all`
 - **Unraid**: root crontab + persistence in `/boot/config/go`
 
 ### 5d. Verify fanout end-to-end
 
 ```bash
-~/data/scripts/backup.sh all              # manual fire
+/opt/stacks/scripts/backup.sh all              # manual fire
 ls ~/backups/                             # confirm dated dirs created
 # Wait ~2 min for Syncthing
 ssh svr001 'ls /mnt/user/backups/<short-name>/'
 ssh svr003 'ls /mnt/backup/<short-name>/'
 ```
 
-Then run a restore drill on one target — the canonical pattern is in `skills/svr003/SKILL.md` → "Restore a Postgres dump from svr002 (geekythings worked example)".
+Then run a restore drill on one target — the canonical pattern is in `skills/svr003/SKILL.md` → "Restore a Postgres dump from scc_contabo (geekythings worked example)".
 
 ## Layer 6 — Update fleet documentation
 
@@ -261,11 +261,11 @@ After everything above lands:
 
 ## Decommissioning (mirror of the onboard)
 
-If a host is being retired, walk the layers in reverse: stop backup.sh + delete LaunchAgent/timer; disable Syncthing folders; remove host block from `~/data/config/ssh/config`; stop NR agent; remove the SSH Host block from `~/data/config/ssh/config`; remove from `skills/svr003/SKILL.md` tables. Last: `tailscale logout` on the host, then remove from Tailscale admin.
+If a host is being retired, walk the layers in reverse: stop backup.sh + delete LaunchAgent/timer; disable Syncthing folders; remove host block from `/opt/stacks/config/ssh/config`; stop NR agent; remove the SSH Host block from `/opt/stacks/config/ssh/config`; remove from `skills/svr003/SKILL.md` tables. Last: `tailscale logout` on the host, then remove from Tailscale admin.
 
 ## Lessons baked into this skill
 
-- **Don't trust the orchestrator's "ok" exit code** without checking per-target output. svr002's backup ran "successfully" for 13 days while only producing failed `plane` snapshots (2026-05-19 — see [[reference_backup_architecture]]).
+- **Don't trust the orchestrator's "ok" exit code** without checking per-target output. scc_contabo's backup ran "successfully" for 13 days while only producing failed `plane` snapshots (2026-05-19 — see [[reference_backup_architecture]]).
 - **15 min is the right sync cadence** for SOPS secrets — long enough that hot-pushes don't thrash, short enough that a same-day push reaches every host before EOD.
 - **Tailscale ACLs gate fleet→VPS SSH** by default. Set up an ACL rule explicitly if you need svr→VPS without per-call browser check-in.
 - **Always invoke shell scripts via `bash <path>` on Unraid** — `/boot` is FAT and won't preserve the exec bit, so direct `/path/to/script.sh` execution fails.

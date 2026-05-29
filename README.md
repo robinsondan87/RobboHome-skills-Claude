@@ -18,7 +18,7 @@ A Claude plugin marketplace with 17 skills for RobboHome automation.
 - **ollama**
 - **portainer**
 - **server-setup**
-- **svr002**
+- **scc_contabo**
 - **cloudflare-tunnel**
 - **deployment-patterns**
 - **docker-management**

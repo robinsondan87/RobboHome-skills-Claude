@@ -18,7 +18,7 @@ When asked to initialise a new RobboHome project:
    ```bash
    # Get registration token
    gh api repos/robinsondan87/REPO_NAME/actions/runners/registration-token --method POST --jq '.token'
-   # On svr002: create new runner dir, download, configure, install service
+   # On scc_contabo: create new runner dir, download, configure, install service
    # See ~/data/infrastructure/skills/register-runner/SKILL.md for full steps
    ```
 6. Set required GitHub Secrets on the new repo:

@@ -288,7 +288,7 @@ The 2026-05-06 migration:
 2. Created the 6 Jira projects manually (UI) with matching keys: `INFRA`, `LC`, `HA`, `SCC`, `GT`, `OC`.
 3. Ran a Node migration script (HTML → ADF, priority map, footer with original Plane key) — see template above.
 4. 86/86 issues migrated, 0 failures.
-5. Decommissioned Plane: `docker compose down --volumes` on svr002 (4.3GB reclaimed), removed `plane.robbohome.com` from Cloudflare tunnel ingress + DNS.
+5. Decommissioned Plane: `docker compose down --volumes` on scc_contabo (4.3GB reclaimed), removed `plane.robbohome.com` from Cloudflare tunnel ingress + DNS.
 6. Marked the `plane:plane` skill as deprecated.
 
 ## Gotchas

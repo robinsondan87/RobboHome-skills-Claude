@@ -94,7 +94,7 @@ ssh svr003 "curl -s -H 'X-API-Key: <key>' http://127.0.0.1:8384/rest/db/status?f
 ```
 Dan's MacBook Pro (FGG3TI4)  ─┐
 Mac mini (36L7BA2)            ├──→  Unraid (JCN427H)  ─→  svr003 (KY6BY3S)
-svr002 (RU4B6FL)              ─┘                              receiveonly
+scc_contabo (RU4B6FL)              ─┘                              receiveonly
                                     sendreceive (relay)
 Unraid (JCN427H) ───────────────────────────────────────→  svr003 (KY6BY3S)
                                                               receiveonly (svr001 backups direct)
@@ -107,7 +107,7 @@ Multiple senders → Unraid relays → svr003 receives. svr003 is purely backup 
 |---|---|---|---|
 | `pictures` / `documents` / `3dprinting` / `scc_2026` / `ssd_photos` | `/mnt/backup/<name>` | MacBook Pro | sendonly chain |
 | `backups-mac-mini` | `/mnt/backup/mac-mini` | Mac mini | openclaw target |
-| `backups-svr002` | `/mnt/backup/svr002` | svr002 | geekythings, gym-coach, loop-coach, brickswap, ollama, hello-world (plane decommissioned 2026-05-06) |
+| `backups-scc_contabo` | `/mnt/backup/scc_contabo` | scc_contabo | geekythings, gym-coach, loop-coach, brickswap, ollama, hello-world (plane decommissioned 2026-05-06) |
 | `backups-svr001` | `/mnt/backup/svr001` | Unraid (svr001) | flash, appdata, docker-state, timescale |
 
 ## Recovery sequence (INFRA-2)
@@ -150,22 +150,22 @@ gunzip -c /tmp/timescale-restore.sql.gz \
   | ssh svr001 'docker exec -i -e PGPASSWORD=$POSTGRES_PASSWORD timescaledb psql -U metrics -d postgres'
 ```
 
-### Restore a Postgres dump from svr002 (geekythings worked example — verified 2026-05-19)
+### Restore a Postgres dump from scc_contabo (geekythings worked example — verified 2026-05-19)
 
-This is the canonical drill for any pg_dump target on svr002. The flow is the same for `geekythings.sql.gz` (live), or future targets like `loop-coach.sql.gz` if/when a pg_dump is added.
+This is the canonical drill for any pg_dump target on scc_contabo. The flow is the same for `geekythings.sql.gz` (live), or future targets like `loop-coach.sql.gz` if/when a pg_dump is added.
 
 ```bash
-# 1. Pull from svr003 → Mac scratch (svr002 ↔ svr003 SSH is not configured; route via Mac)
+# 1. Pull from svr003 → Mac scratch (scc_contabo ↔ svr003 SSH is not configured; route via Mac)
 DRILL=/tmp/restore-drill-$(date +%Y%m%d-%H%M%S); mkdir -p "$DRILL"
-scp svr003:/mnt/backup/svr002/geekythings/$(ssh svr003 'ls /mnt/backup/svr002/geekythings/ | sort | tail -1')/geekythings.sql.gz "$DRILL/"
+scp svr003:/mnt/backup/scc_contabo/geekythings/$(ssh svr003 'ls /mnt/backup/scc_contabo/geekythings/ | sort | tail -1')/geekythings.sql.gz "$DRILL/"
 
-# 2. Verify integrity against the source on svr002 (skip if svr002 is the lost host)
+# 2. Verify integrity against the source on scc_contabo (skip if scc_contabo is the lost host)
 SHA_OFFSITE=$(shasum -a 256 "$DRILL/geekythings.sql.gz" | awk '{print $1}')
 SHA_SOURCE=$(ssh scc_contabo "sha256sum /home/robbohomebot/backups/geekythings/\$(ls /home/robbohomebot/backups/geekythings/ | grep '^2' | sort | tail -1)/geekythings.sql.gz | awk '{print \$1}'")
 [ "$SHA_OFFSITE" = "$SHA_SOURCE" ] && echo "✓ offsite copy matches source" || echo "✗ drift — investigate"
 
-# 3. Relay to svr002 (or wherever you're restoring to)
-scp "$DRILL/geekythings.sql.gz" svr002:/tmp/
+# 3. Relay to scc_contabo (or wherever you're restoring to)
+scp "$DRILL/geekythings.sql.gz" scc_contabo:/tmp/
 
 # 4. Spin a throwaway Postgres container, restore, verify
 ssh scc_contabo 'docker run -d --name restore-drill-pg \
@@ -207,9 +207,9 @@ Pick one target per source host. Pull from svr003 to a scratch dir. Verify the m
 ### Verified drills
 | Date | Target | Result |
 |---|---|---|
-| 2026-05-19 | svr002 / geekythings pg_dump | sha256 match svr003 ↔ svr002 source ↔ Mac relay (`5b9a170e…3ea35`). Restore into throwaway `postgres:16-alpine` clean. Row counts identical: products=193, ukca_documents=16, product_pricing=13, events=3, supplies=2. |
+| 2026-05-19 | scc_contabo / geekythings pg_dump | sha256 match svr003 ↔ scc_contabo source ↔ Mac relay (`5b9a170e…3ea35`). Restore into throwaway `postgres:16-alpine` clean. Row counts identical: products=193, ukca_documents=16, product_pricing=13, events=3, supplies=2. |
 
 ## Related Skills
-- `skills/svr002/SKILL.md` — primary home server
+- `skills/scc_contabo/SKILL.md` — primary home server
 - `skills/server-bootstrap/SKILL.md` — server setup reference
 - `skills/docker-management/SKILL.md` — Unraid Syncthing container is `lscr.io/linuxserver/syncthing`, managed via dockerman

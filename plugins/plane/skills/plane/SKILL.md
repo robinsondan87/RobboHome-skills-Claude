@@ -4,13 +4,13 @@ description: DEPRECATED 2026-05-06 — Plane was migrated to Atlassian Cloud Jir
 
 # Skill: Plane (DEPRECATED — migrated to Jira on 2026-05-06)
 
-> ⚠️ **DEPRECATED.** Plane was decommissioned on 2026-05-06. All 86 open issues across the 6 projects (INFRA, LC, HA, SCC, GT, OC) were migrated to Atlassian Cloud Jira at `https://robbohome.atlassian.net`, the Docker stack on svr002 was torn down (~4.3GB reclaimed), and the `plane.robbohome.com` Cloudflare tunnel route + DNS record were removed.
+> ⚠️ **DEPRECATED.** Plane was decommissioned on 2026-05-06. All 86 open issues across the 6 projects (INFRA, LC, HA, SCC, GT, OC) were migrated to Atlassian Cloud Jira at `https://robbohome.atlassian.net`, the Docker stack on scc_contabo was torn down (~4.3GB reclaimed), and the `plane.robbohome.com` Cloudflare tunnel route + DNS record were removed.
 >
 > **For all new TODO/issue work, use the `jira:jira` skill.** This file is retained only as historical reference for the migration itself — the API patterns, project IDs, and admin credentials below no longer point at a running service.
 
 ---
 
-[Plane](https://plane.so) Community Edition was self-hosted on svr002 — Linear/Jira-style issue tracker. Replaced ad-hoc `TODO.md` files across the fleet from early 2026 until the Jira migration on 2026-05-06.
+[Plane](https://plane.so) Community Edition was self-hosted on scc_contabo — Linear/Jira-style issue tracker. Replaced ad-hoc `TODO.md` files across the fleet from early 2026 until the Jira migration on 2026-05-06.
 
 ## Where it lives
 
@@ -18,7 +18,7 @@ description: DEPRECATED 2026-05-06 — Plane was migrated to Atlassian Cloud Jir
 |---|---|
 | Public URL | https://plane.robbohome.com (CF tunnel via 161.97.66.102:18080) |
 | Local URL | `http://161.97.66.102:18080` |
-| Stack | `~/data/plane-selfhost/plane-app/` on svr002 (12 containers under `plane-app-*`) |
+| Stack | `~/data/plane-selfhost/plane-app/` on scc_contabo (12 containers under `plane-app-*`) |
 | Workspace | `RobboHome` (slug: `robbohome`) |
 | Primary project | **Infrastructure** (identifier `INFRA`, id `ba6c47c8-8e65-4146-bd75-ac58e27288bb`) |
 | Secondary project | **Loop Coach** (identifier `LC`, id `5aa10b10-020f-4432-9fd1-736c0884fcea`) — diabetes/insulin profile experiments |

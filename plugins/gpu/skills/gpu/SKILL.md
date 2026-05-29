@@ -27,7 +27,7 @@ ssh scc_contabo 'sudo nvidia-smi -pl WATTS'
 ```
 
 ## Change power limit (persistent)
-Edit /etc/systemd/system/nvidia-power-limit.service on svr002, then:
+Edit /etc/systemd/system/nvidia-power-limit.service on scc_contabo, then:
 ```bash
 ssh scc_contabo 'sudo systemctl daemon-reload && sudo systemctl restart nvidia-power-limit.service'
 ```

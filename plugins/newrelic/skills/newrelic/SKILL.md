@@ -4,7 +4,7 @@ description: newrelic — New Relic infrastructure agent on all hosts (Unraid, U
 
 # Skill: New Relic
 
-EU-region account. Infrastructure agents run on all six hosts: svr001, svr002, svr003, daniels-macbook-pro-1, robbo-mac-mini, vmi3091030.
+EU-region account. Infrastructure agents run on all six hosts: svr001, scc_contabo, svr003, daniels-macbook-pro-1, robbo-mac-mini, vmi3091030.
 
 ## Account & keys
 - **Region**: EU (license key prefix `eu01xx`, agent ships to EU endpoint automatically)
@@ -24,7 +24,7 @@ echo "$NEW_RELIC_LICENSE_KEY"
 | Host | Role tag | Install method |
 |---|---|---|
 | svr001 (Unraid) | `unraid` | Docker container |
-| svr002 (Ubuntu) | `home-server` | apt + systemd |
+| scc_contabo (Ubuntu) | `home-server` | apt + systemd |
 | svr003 (Debian Trixie arm64) | `backup-server` | apt + systemd, with `trusted=yes` workaround |
 | Daniels-MBP.lan | `workstation` | Homebrew + launchd |
 | robbo-mac-mini | `mac-mini-server` | Homebrew + launchd (also runs separately-installed `fluent-bit` for logs) |
@@ -33,7 +33,7 @@ echo "$NEW_RELIC_LICENSE_KEY"
 ### svr001 — Unraid (Docker)
 Slackware is not on New Relic's officially supported OS list, so use `newrelic/infrastructure-bundle` (bundle includes on-host integrations: docker, redis, postgres, etc.).
 
-Run from a host that has the secrets loaded (e.g. Mac or svr002):
+Run from a host that has the secrets loaded (e.g. Mac or scc_contabo):
 ```bash
 source ~/data/config/load-secrets.sh
 
@@ -52,7 +52,7 @@ ssh svr001 docker run -d --name newrelic-infra \
 
 Expected (harmless) log warnings: `unable to initialize containerd client` (Unraid uses Docker, not containerd), `failed to connect to DBus` / `no systemd found` (Unraid is sysvinit). Host metrics + Docker container metrics + process samples all work normally despite these.
 
-### svr002 — Ubuntu (apt)
+### scc_contabo — Ubuntu (apt)
 Standard install via the New Relic apt repo:
 ```bash
 ssh scc_contabo 'sudo bash -c "
@@ -65,7 +65,7 @@ ssh scc_contabo 'sudo bash -c "
 Then write `/etc/newrelic-infra.yml`:
 ```yaml
 license_key: <key>
-display_name: svr002
+display_name: scc_contabo
 custom_attributes:
   role: home-server
   environment: home
@@ -81,7 +81,7 @@ ssh svr003 'sudo bash -c "
   apt-get update -qq && apt-get install newrelic-infra -y
 "'
 ```
-Same `/etc/newrelic-infra.yml` pattern as svr002 (`display_name: svr003`, `role: backup-server`).
+Same `/etc/newrelic-infra.yml` pattern as scc_contabo (`display_name: svr003`, `role: backup-server`).
 
 This works for arm64 — New Relic ships arm64 packages in the same apt repo.
 
@@ -135,7 +135,7 @@ A row per `hostname` with a recent `latest(timestamp)` confirms each host is shi
 - Filter by `environment=home`
 
 ## Related Skills
-- `skills/svr002/SKILL.md` — primary home server, secrets live here
+- `skills/scc_contabo/SKILL.md` — primary home server, secrets live here
 - `skills/svr003/SKILL.md` — backup server (Trixie arm64 — note the GPG workaround)
 - `skills/docker-management/SKILL.md` — for Unraid container operations
 - `skills/grafana/SKILL.md` — Grafana on Unraid uses NR as a data source
