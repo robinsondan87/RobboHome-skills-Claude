@@ -31,8 +31,8 @@ bash server-bootstrap.sh
 ## Post-bootstrap checklist
 - [ ] Verify Docker: `docker ps`
 - [ ] Verify GPU: `nvidia-smi` (if NVIDIA card present)
-- [ ] Access Portainer: http://192.168.1.17:9000 — set admin password on first visit
-- [ ] Access Cockpit: http://192.168.1.17:9090
+- [ ] Access Portainer: http://161.97.66.102:9000 — set admin password on first visit
+- [ ] Access Cockpit: http://161.97.66.102:9090
 - [ ] Register GitHub Actions runners for each app — see `skills/register-runner/SKILL.md`
 - [ ] Copy app data volumes from old server if migrating
 - [ ] Update Cloudflare Tunnel to point to new server — see `skills/cloudflare-tunnel/SKILL.md`
@@ -41,16 +41,16 @@ bash server-bootstrap.sh
 | | |
 |---|---|
 | Hostname | svr002 |
-| IP | 192.168.1.17 |
+| IP | 161.97.66.102 |
 | User | robbohomebot |
-| SSH | `ssh svr002` (alias) or `ssh robbohome-server` |
+| SSH | `ssh scc_contabo` (alias) or `ssh scc_contabo` |
 | Key | `~/.ssh/svr002_remote` (ed25519, comment: svr002-remote) |
 | OS | Ubuntu |
 
 ## SSH config entry (~/.ssh/config)
 ```
 Host svr002 robbohome-server
-  HostName 192.168.1.17
+  HostName 161.97.66.102
   User robbohomebot
   IdentityFile ~/.ssh/svr002_remote
   IdentitiesOnly yes

@@ -42,12 +42,12 @@ make logs
 
 ## Verify live
 ```bash
-curl http://192.168.1.17:3002/
+curl http://161.97.66.102:3002/
 ```
 
 ## Roll back to a previous version
 ```bash
-ssh robbohome-server
+ssh scc_contabo
 cd ~/data/geekythings
 VERSION=1.x.x docker compose -f docker-compose.prod.yml up -d
 ```
@@ -76,16 +76,16 @@ rsync -az /tmp/geekythings-products/ robbohome-server:/home/robbohomebot/data/ge
 
 ### 3. Create data directories and start Postgres on new server
 ```bash
-ssh robbohome-server 'mkdir -p ~/data/geekythings/Products ~/data/geekythings/db'
+ssh scc_contabo 'mkdir -p ~/data/geekythings/Products ~/data/geekythings/db'
 
 # Temporarily start just the DB to restore into
-ssh robbohome-server 'cd ~/data/geekythings && docker compose -f docker-compose.prod.yml up -d db'
+ssh scc_contabo 'cd ~/data/geekythings && docker compose -f docker-compose.prod.yml up -d db'
 sleep 5
 ```
 
 ### 4. Restore the database
 ```bash
-ssh robbohome-server 'docker exec -i geekythings-db psql -U geekythings -d geekythings' < /tmp/geekythings-clean.sql
+ssh scc_contabo 'docker exec -i geekythings-db psql -U geekythings -d geekythings' < /tmp/geekythings-clean.sql
 ```
 
 ### 5. Set GitHub Secret for Postgres password
@@ -141,7 +141,7 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOU
 | Project path | `/Users/robbohomebot/Projects/GeekyThingsProductCatalogue` |
 | Repo | `robinsondan87/GeekyThingsProductCatalogue` |
 | Public URL | https://geekythings.robbohome.com |
-| Internal URL | http://192.168.1.17:3002 |
+| Internal URL | http://161.97.66.102:3002 |
 | Port | 3002 (container port 8555) |
 | GHCR image | `ghcr.io/robinsondan87/geekythings` |
 | Data volumes | `~/data/geekythings/Products/` (~10GB), `~/data/geekythings/db/` |

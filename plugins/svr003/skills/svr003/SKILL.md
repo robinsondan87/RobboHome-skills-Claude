@@ -161,14 +161,14 @@ scp svr003:/mnt/backup/svr002/geekythings/$(ssh svr003 'ls /mnt/backup/svr002/ge
 
 # 2. Verify integrity against the source on svr002 (skip if svr002 is the lost host)
 SHA_OFFSITE=$(shasum -a 256 "$DRILL/geekythings.sql.gz" | awk '{print $1}')
-SHA_SOURCE=$(ssh svr002 "sha256sum /home/robbohomebot/backups/geekythings/\$(ls /home/robbohomebot/backups/geekythings/ | grep '^2' | sort | tail -1)/geekythings.sql.gz | awk '{print \$1}'")
+SHA_SOURCE=$(ssh scc_contabo "sha256sum /home/robbohomebot/backups/geekythings/\$(ls /home/robbohomebot/backups/geekythings/ | grep '^2' | sort | tail -1)/geekythings.sql.gz | awk '{print \$1}'")
 [ "$SHA_OFFSITE" = "$SHA_SOURCE" ] && echo "✓ offsite copy matches source" || echo "✗ drift — investigate"
 
 # 3. Relay to svr002 (or wherever you're restoring to)
 scp "$DRILL/geekythings.sql.gz" svr002:/tmp/
 
 # 4. Spin a throwaway Postgres container, restore, verify
-ssh svr002 'docker run -d --name restore-drill-pg \
+ssh scc_contabo 'docker run -d --name restore-drill-pg \
     -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=geekythings_restored -e POSTGRES_USER=postgres \
     -p 35432:5432 postgres:16-alpine
   for i in $(seq 1 30); do docker exec restore-drill-pg pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done

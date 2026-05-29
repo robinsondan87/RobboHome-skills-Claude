@@ -13,23 +13,23 @@ description: gpu skill for RobboHome automation.
 
 ## Check GPU status
 ```bash
-ssh robbohome-server 'nvidia-smi'
+ssh scc_contabo 'nvidia-smi'
 ```
 
 ## Check power limit
 ```bash
-ssh robbohome-server 'nvidia-smi --query-gpu=power.limit,power.draw --format=csv,noheader'
+ssh scc_contabo 'nvidia-smi --query-gpu=power.limit,power.draw --format=csv,noheader'
 ```
 
 ## Change power limit (temporary)
 ```bash
-ssh robbohome-server 'sudo nvidia-smi -pl WATTS'
+ssh scc_contabo 'sudo nvidia-smi -pl WATTS'
 ```
 
 ## Change power limit (persistent)
 Edit /etc/systemd/system/nvidia-power-limit.service on svr002, then:
 ```bash
-ssh robbohome-server 'sudo systemctl daemon-reload && sudo systemctl restart nvidia-power-limit.service'
+ssh scc_contabo 'sudo systemctl daemon-reload && sudo systemctl restart nvidia-power-limit.service'
 ```
 
 ## TPS vs power limit findings (qwen3:8b)
@@ -44,7 +44,7 @@ ssh robbohome-server 'sudo systemctl daemon-reload && sudo systemctl restart nvi
 
 ## Verify GPU available in Docker
 ```bash
-ssh robbohome-server 'docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi'
+ssh scc_contabo 'docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi'
 ```
 
 ## LACT (undervolting) — TODO

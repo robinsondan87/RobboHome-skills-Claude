@@ -55,7 +55,7 @@ Expected (harmless) log warnings: `unable to initialize containerd client` (Unra
 ### svr002 — Ubuntu (apt)
 Standard install via the New Relic apt repo:
 ```bash
-ssh svr002 'sudo bash -c "
+ssh scc_contabo 'sudo bash -c "
   curl -fsSL https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/newrelic-infra.gpg
   CODENAME=\$(lsb_release -cs)
   echo \"deb [signed-by=/etc/apt/trusted.gpg.d/newrelic-infra.gpg] https://download.newrelic.com/infrastructure_agent/linux/apt \$CODENAME main\" > /etc/apt/sources.list.d/newrelic-infra.list

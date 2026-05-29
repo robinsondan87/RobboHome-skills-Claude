@@ -16,8 +16,8 @@ description: DEPRECATED 2026-05-06 — Plane was migrated to Atlassian Cloud Jir
 
 | | |
 |---|---|
-| Public URL | https://plane.robbohome.com (CF tunnel via 192.168.1.17:18080) |
-| Local URL | `http://192.168.1.17:18080` |
+| Public URL | https://plane.robbohome.com (CF tunnel via 161.97.66.102:18080) |
+| Local URL | `http://161.97.66.102:18080` |
 | Stack | `~/data/plane-selfhost/plane-app/` on svr002 (12 containers under `plane-app-*`) |
 | Workspace | `RobboHome` (slug: `robbohome`) |
 | Primary project | **Infrastructure** (identifier `INFRA`, id `ba6c47c8-8e65-4146-bd75-ac58e27288bb`) |
@@ -62,7 +62,7 @@ curl -s -H "x-api-key: $PLANE_API_KEY" \
 
 Project ids: Infrastructure = `ba6c47c8-8e65-4146-bd75-ac58e27288bb`, Loop Coach = `5aa10b10-020f-4432-9fd1-736c0884fcea`. List the rest via the projects/ endpoint.
 
-**SSL gotcha for Python migration scripts**: `https://plane.robbohome.com` goes through Cloudflare's edge cert; macOS Python 3.13's bundled CA store can fail verification. Use the **LAN URL** `http://192.168.1.17:18080/api/v1` from the Mac for migration scripts, not `$PLANE_URL`. Curl works either way (uses system CA chain).
+**SSL gotcha for Python migration scripts**: `https://plane.robbohome.com` goes through Cloudflare's edge cert; macOS Python 3.13's bundled CA store can fail verification. Use the **LAN URL** `http://161.97.66.102:18080/api/v1` from the Mac for migration scripts, not `$PLANE_URL`. Curl works either way (uses system CA chain).
 
 ## When to add a Plane issue vs do it inline
 

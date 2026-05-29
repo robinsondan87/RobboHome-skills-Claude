@@ -32,7 +32,7 @@ When asked to initialise a new RobboHome project:
 7. Push initial commit → confirm Actions workflow triggers
 8. Add Cloudflare tunnel route + DNS + Zero Trust app:
    - See cloudflare skill for full API calls
-   - subdomain.robbohome.com → http://192.168.1.17:PORT
+   - subdomain.robbohome.com → http://161.97.66.102:PORT
 
 ## Port allocation (avoid conflicts)
 

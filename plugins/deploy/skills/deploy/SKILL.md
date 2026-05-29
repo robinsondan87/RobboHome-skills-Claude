@@ -16,7 +16,7 @@ description: deploy skill for RobboHome automation.
   make logs
 
 ## Roll back to previous version
-  ssh robbohome-server
+  ssh scc_contabo
   cd ~/data/PROJECT_NAME
   VERSION=1.x.x docker compose -f docker-compose.prod.yml up -d
 

@@ -4,12 +4,12 @@ description: docker-management skill for RobboHome automation.
 
 # Skill: Docker Management on svr002
 
-Managing Docker containers on svr002 (192.168.1.17).
+Managing Docker containers on svr002 (161.97.66.102).
 
 ## Access
 ```bash
-ssh svr002
-# or: ssh robbohome-server
+ssh scc_contabo
+# or: ssh scc_contabo
 ```
 Key: `~/.ssh/svr002_remote` — configured in `~/.ssh/config` as `svr002 / robbohome-server`.
 
@@ -17,26 +17,26 @@ Key: `~/.ssh/svr002_remote` — configured in `~/.ssh/config` as `svr002 / robbo
 
 ### View all running containers
 ```bash
-ssh svr002 'docker ps'
+ssh scc_contabo 'docker ps'
 ```
 
 ### View logs
 ```bash
 # Live tail
-ssh svr002 'docker logs <container> -f --tail 50'
+ssh scc_contabo 'docker logs <container> -f --tail 50'
 
 # Last 100 lines
-ssh svr002 'docker logs <container> --tail 100'
+ssh scc_contabo 'docker logs <container> --tail 100'
 ```
 
 ### Restart a container
 ```bash
-ssh svr002 'docker restart <container>'
+ssh scc_contabo 'docker restart <container>'
 ```
 
 ### Pull latest image and restart (manual deploy)
 ```bash
-ssh svr002 '
+ssh scc_contabo '
   docker pull ghcr.io/robinsondan87/<app>:latest
   cd ~/data/<app>
   docker compose -f docker-compose.prod.yml up -d
@@ -45,9 +45,9 @@ ssh svr002 '
 
 ### Disk usage
 ```bash
-ssh svr002 'docker system df'
+ssh scc_contabo 'docker system df'
 # Clean up unused images/volumes
-ssh svr002 'docker system prune -f'
+ssh scc_contabo 'docker system prune -f'
 ```
 
 ## Portainer (web UI)

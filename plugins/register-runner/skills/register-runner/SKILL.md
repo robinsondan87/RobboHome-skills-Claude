@@ -18,7 +18,7 @@ gh api repos/robinsondan87/REPO_NAME/actions/runners/registration-token --method
 
 **2. On svr002 — create a new runner directory and download the runner:**
 ```bash
-ssh robbohome-server '
+ssh scc_contabo '
 RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | grep "\"tag_name\"" | sed "s/.*\"v\(.*\)\".*/\1/")
 mkdir -p /home/robbohomebot/actions-runner-REPO_NAME
 cd /home/robbohomebot/actions-runner-REPO_NAME
@@ -31,7 +31,7 @@ chown -R robbohomebot /home/robbohomebot/actions-runner-REPO_NAME
 
 **3. Register the runner:**
 ```bash
-ssh robbohome-server '
+ssh scc_contabo '
 cd /home/robbohomebot/actions-runner-REPO_NAME
 sudo -u robbohomebot ./config.sh \
   --url "https://github.com/robinsondan87/REPO_NAME" \
@@ -44,7 +44,7 @@ sudo -u robbohomebot ./config.sh \
 
 **4. Install and start as a systemd service:**
 ```bash
-ssh robbohome-server '
+ssh scc_contabo '
 cd /home/robbohomebot/actions-runner-REPO_NAME
 sudo ./svc.sh install robbohomebot
 sudo ./svc.sh start

@@ -35,7 +35,7 @@ curl https://gymcoach.robbohome.com/api/health
 
 ## Roll back to a previous version
 ```bash
-ssh robbohome-server
+ssh scc_contabo
 cd ~/data/gym-coach
 VERSION=1.x.x docker compose -f docker-compose.prod.yml up -d
 ```
@@ -48,17 +48,17 @@ Backups run at 2am daily via cron on svr002, pushed to `robinsondan87/gym-coach-
 
 **Check last backup:**
 ```bash
-ssh robbohome-server 'tail -5 ~/data/gym-coach/backup.log'
+ssh scc_contabo 'tail -5 ~/data/gym-coach/backup.log'
 ```
 
 **Run a manual backup:**
 ```bash
-ssh robbohome-server 'bash ~/data/gym-coach/backup.sh'
+ssh scc_contabo 'bash ~/data/gym-coach/backup.sh'
 ```
 
 **Restore from backup:**
 ```bash
-ssh robbohome-server '
+ssh scc_contabo '
 docker stop gym-coach
 cp ~/data/gym-coach-backup/gym-latest.db ~/data/gym-coach/data/gym.db
 chmod 666 ~/data/gym-coach/data/gym.db
@@ -102,7 +102,7 @@ echo "Backup complete: ${DATE}"
 | Project path | `/Users/robbohomebot/gym-coach` |
 | Repo | `robinsondan87/gym-coach` |
 | Public URL | https://gymcoach.robbohome.com |
-| Internal URL | http://192.168.1.17:3847 |
+| Internal URL | http://161.97.66.102:3847 |
 | Port | 3847 |
 | GHCR image | `ghcr.io/robinsondan87/gym-coach` |
 | Data volume | `~/data/gym-coach/data/gym.db` on svr002 |

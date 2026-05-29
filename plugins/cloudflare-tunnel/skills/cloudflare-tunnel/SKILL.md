@@ -69,6 +69,6 @@ curl -X DELETE "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUN
 | GeekyThings | geekythings.robbohome.com | Yes | App ID: `119c16e9-eeab-48af-ba7c-51e970ba1a34`; `/files-token/*` has a bypass app (`45000b6f-89c1-4583-8e10-6c305815a4ac`) |
 
 ## Troubleshooting
-- **502/tunnel error**: Check `cloudflared` is running on svr002 — `ssh robbohomebot@192.168.1.17 'systemctl status cloudflared'`
+- **502/tunnel error**: Check `cloudflared` is running on svr002 — `ssh robbohomebot@161.97.66.102 'systemctl status cloudflared'`
 - **Still showing Access login after removing**: Cloudflare propagation takes ~30s, or clear browser cookies
 - **API returns 302 on requests**: Cloudflare Access is blocking — remove the Access app or add a bypass policy for `/api/*`

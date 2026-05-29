@@ -20,17 +20,17 @@ Default model: qwen3:8b
 
 ## Pull a new model
 ```bash
-ssh robbohome-server 'docker exec ollama ollama pull MODEL_NAME'
+ssh scc_contabo 'docker exec ollama ollama pull MODEL_NAME'
 ```
 
 ## List models
 ```bash
-ssh robbohome-server 'docker exec ollama ollama list'
+ssh scc_contabo 'docker exec ollama ollama list'
 ```
 
 ## TPS benchmark
 ```bash
-ssh robbohome-server 'python3 << EOF
+ssh scc_contabo 'python3 << EOF
 import urllib.request, json
 models = ["gemma3:4b", "qwen3:8b", "gemma4:e4b"]
 prompt = "Explain what a large language model is in 3 sentences."
@@ -46,7 +46,7 @@ EOF'
 
 ## Check model capabilities (vision, tools, thinking)
 ```bash
-ssh robbohome-server 'curl -s http://localhost:11434/api/show \
+ssh scc_contabo 'curl -s http://localhost:11434/api/show \
   -d "{\"model\":\"MODEL\"}" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r[\"capabilities\"])"'
 ```
 
