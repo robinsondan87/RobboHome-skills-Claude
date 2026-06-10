@@ -1,116 +1,75 @@
 ---
-description: Deploy gym-coach to scc_contabo via CI/CD — bump version, push, and monitor the GitHub Actions workflow.
-allowed-tools: Bash(git*) Bash(gh*) Bash(make*)
+description: Deploy Gym Coach AI (gymcoachai monorepo) to the Contabo VPS via push-to-main CI/CD, and monitor the GitHub Actions workflow.
+allowed-tools: Bash(git*) Bash(gh*) Bash(ssh*) Bash(curl*) Bash(pnpm*)
 ---
 
-# Deploy Gym Coach to scc_contabo
+# Deploy Gym Coach AI
 
-## Patch release (bug fix)
-```bash
-cd /Users/robbohomebot/gym-coach
-make bump-patch
-git push && git push --tags
-```
+The canonical app is the **`gymcoachai`** monorepo (`robinsondan87/gymcoachai`, local `~/Projects/gymcoachai`), which **replaced** the old single-user `gym-coach` (svr002 — decommissioned 2026-06-07). Deploy is **push-to-`main`**: a self-hosted runner on the **Contabo VPS** rsyncs the source and rebuilds the compose stack. There is no version bump/tag step and no `make` targets — pushing to `main` is the deploy.
 
-## Minor release (new feature)
+> **Deliberate naming asymmetry (don't "fix"):** the GitHub repo + brand + domain are `gymcoachai`, but the **on-box** stack stays `gymcoachshared` — deploy path `/opt/stacks/gymcoachshared`, container `gymcoachshared-app` (port 3011), CI `DEPLOY_PATH=/opt/stacks/gymcoachshared`. Renaming risks the data dir + restic snapshot paths.
+
+## Deploy a change
 ```bash
-make bump-minor
-git push && git push --tags
+cd ~/Projects/gymcoachai
+# (optional hygiene) bump the VERSION file: patch for fixes, minor for features
+printf '0.2.1\n' > VERSION
+
+# de-risk first — CI runs `next build`, stricter than tsc:
+AUTH_SECRET=build-test pnpm --filter gym-coach-app build   # expect exit 0
+
+git add -A && git commit -m "…"   # end with the Co-Authored-By trailer
+git push origin main              # ← this triggers the deploy
 ```
+If you add a dependency, commit the updated `pnpm-lock.yaml` (CI installs with `--no-frozen-lockfile`, so a slight drift won't fail the build, but keep it clean).
 
 ## Watch the deployment
 ```bash
-gh run watch --repo robinsondan87/gym-coach
+RID=$(gh run list --repo robinsondan87/gymcoachai --limit 1 --json databaseId -q '.[0].databaseId')
+gh run watch "$RID" --repo robinsondan87/gymcoachai --exit-status
 ```
-
-## Check logs on scc_contabo
-```bash
-make logs
-```
+A full build+deploy takes ~6 min. Workflow: `.github/workflows/deploy.yml` (`on: push: branches:[main]` + `workflow_dispatch`).
 
 ## Verify live
 ```bash
-curl https://gymcoach.robbohome.com/api/health
+curl -s -o /dev/null -w '%{http_code}\n' https://gymcoachai.robbohome.com/   # 307 = normal auth redirect
+ssh scc_contabo 'cat /opt/stacks/gymcoachshared/VERSION; docker ps --filter name=gymcoachshared-app --format "{{.Status}}"'
 ```
 
-## Roll back to a previous version
+## How the CI deploy works (deploy.yml)
+1. `actions/checkout`.
+2. **rsync** the repo into `$DEPLOY_PATH` with plain `--delete` (NOT `--delete-excluded`). `.env` (compose secrets: Google OAuth, OpenRouter, AUTH_SECRET) and `data/` (auth.db + every per-user `gym.db`) are `--exclude`'d, so they are never sent and **never deleted** — they survive every deploy.
+3. `docker compose build && docker compose up -d --remove-orphans && docker image prune -f`.
+
+**CI gotcha (already fixed, keep it):** never switch the rsync to `--delete-excluded` — it wiped the excluded `data/` dir (all user DBs) on every deploy.
+
+## Roll back
 ```bash
-ssh scc_contabo
-cd ~/data/gym-coach
-VERSION=1.x.x docker compose -f docker-compose.prod.yml up -d
+ssh scc_contabo 'cd /opt/stacks/gymcoachshared && git -C ~/Projects/gymcoachai log --oneline -5'  # find a good SHA
+# Re-deploy a known-good commit by pushing a revert, or check out the SHA on the box and rebuild:
+ssh scc_contabo 'cd /opt/stacks/gymcoachshared && docker compose up -d --build'
 ```
-
----
-
-## Nightly DB backup
-
-Backups run at 2am daily via cron on scc_contabo, pushed to `robinsondan87/gym-coach-backup` (private).
-
-**Check last backup:**
-```bash
-ssh scc_contabo 'tail -5 /opt/stacks/gym-coach/backup.log'
-```
-
-**Run a manual backup:**
-```bash
-ssh scc_contabo 'bash /opt/stacks/gym-coach/backup.sh'
-```
-
-**Restore from backup:**
-```bash
-ssh scc_contabo '
-docker stop gym-coach
-cp /opt/stacks/gym-coach-backup/gym-latest.db /opt/stacks/gym-coach/data/gym.db
-chmod 666 /opt/stacks/gym-coach/data/gym.db
-docker start gym-coach
-'
-```
-
-### Re-installing backup on a new server
-1. Clone backup repo: `git clone https://github.com/robinsondan87/gym-coach-backup.git ~/data/gym-coach-backup`
-2. Install sqlite3: `sudo apt-get install -y sqlite3`
-3. Copy backup script from gym-coach repo (`backup.sh`) into `/opt/stacks/gym-coach/`
-4. Configure git credentials: `git config --global credential.helper store` + add token to `~/.git-credentials`
-5. Set up cron: `crontab -e` → add `0 2 * * * /bin/bash /home/robbohomebot/data/gym-coach/backup.sh >> /home/robbohomebot/data/gym-coach/backup.log 2>&1`
-6. Fix DB file permissions: `chmod 666 /opt/stacks/gym-coach/data/gym.db*`
-
-### backup.sh content
-```bash
-#!/bin/bash
-set -e
-DB_SRC="/home/robbohomebot/data/gym-coach/data/gym.db"
-BACKUP_REPO="/home/robbohomebot/data/gym-coach-backup"
-DATE=$(date +%Y-%m-%d)
-sqlite3 "$DB_SRC" "PRAGMA wal_checkpoint(TRUNCATE);"
-cp "$DB_SRC" "$BACKUP_REPO/gym-${DATE}.db"
-cp "$DB_SRC" "$BACKUP_REPO/gym-latest.db"
-cd "$BACKUP_REPO"
-ls -t gym-20*.db 2>/dev/null | tail -n +31 | xargs -r rm
-git add -A
-git diff --cached --quiet && echo "No changes to backup" && exit 0
-git commit -m "backup: ${DATE}"
-git push origin main
-echo "Backup complete: ${DATE}"
-```
-
----
+(Source on the box is rsync'd, not a git checkout, so the clean rollback is `git revert <sha> && git push` from the Mac.)
 
 ## Key reference
 
 | Item | Value |
 |------|-------|
-| Project path | `/Users/robbohomebot/gym-coach` |
-| Repo | `robinsondan87/gym-coach` |
-| Public URL | https://gymcoach.robbohome.com |
-| Internal URL | http://161.97.66.102:3847 |
-| Port | 3847 |
-| GHCR image | `ghcr.io/robinsondan87/gym-coach` |
-| Data volume | `/opt/stacks/gym-coach/data/gym.db` on scc_contabo |
-| Backup repo | `robinsondan87/gym-coach-backup` (private, 30 days) |
-| Auth | Cloudflare Zero Trust (Google auth) — no APP_PASSWORD |
-| Key agent endpoint | `GET /api/coach/session-brief?type=push` |
+| Local path | `~/Projects/gymcoachai` |
+| GitHub repo | `robinsondan87/gymcoachai` (private, self-hosted runner CI) |
+| iOS repo | `robinsondan87/gymcoachai-ios` (`~/Projects/gymcoachai-ios`) |
+| Deploy trigger | push to `main` |
+| Runner / host | self-hosted on **Contabo VPS** (ssh alias `scc_contabo`) |
+| On-box path | `/opt/stacks/gymcoachshared` (asymmetry — see above) |
+| Container | `gymcoachshared-app`, port **3011** |
+| Public URL | https://gymcoachai.robbohome.com (Cloudflare proxied; HTTP origin) |
+| App brand | "Gym Coach AI" |
+| Per-user data | `/opt/stacks/gymcoachshared/data/users/<userId>/gym.db` (+ `memory.db`); central `auth.db` (accounts only) |
+| Build (local de-risk) | `pnpm --filter gym-coach-app build` |
+| Secrets | GitHub Secrets on the repo + `.env` on the box (never in git) |
 
 ## Notes
-- Data volume at `/opt/stacks/gym-coach/data/` on scc_contabo — never touched by deploys
-- DB file permissions must be 666 (container runs as node uid 1000, host user is uid 1001)
-- AUTH_SECRET and Cloudflare secrets stored as GitHub Secrets on the repo
+- **Never use `confirm()` / `alert()`** in the web app — the iOS WKWebView shell silently swallows them. Use the in-app `ConfirmModal` + inline banners.
+- Data dirs + `.env` on the box are never touched by deploys (rsync-excluded).
+- Old `gym-coach` / `gym-coach-ai` / svr002 are decommissioned; their GitHub repos are archived (read-only), not deleted. Old domains (`gymcoach.robbohome.com`, `gymcoachshared.robbohome.com`) are removed — only `gymcoachai.robbohome.com` remains.
+- iOS deploy is separate: `cd ~/Projects/gymcoachai-ios && make deploy` (fastlane → connected iPhone). `DEVELOPMENT_TEAM` must be `9SF4DS367B` (Dan's paid team — required for HealthKit).
