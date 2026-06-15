@@ -1,10 +1,15 @@
 ---
+name: cloudflare-tunnel
 description: cloudflare-tunnel skill for RobboHome automation.
 ---
 
 # Skill: Cloudflare Tunnel & Zero Trust
 
 Exposes self-hosted services on scc_contabo publicly via Cloudflare Tunnel without opening ports on the router.
+
+## Via the MetaMCP hub (Codex `home` namespace)
+
+Tunnel + Zero Trust changes can also go through the hub's Cloudflare **code-mode** tools (`cloudflare__*`, **`home`** namespace, Codex MCP server `home`, bearer `HOMELAB_MCP_KEY`) — they reach the whole CF API including tunnel config and Access apps. **Prefer them for one-off changes**; the explicit API call patterns below remain the fallback and the clearest reference for the exact ingress-rule JSON shape. See the `metamcp-hub` memory and the `cloudflare` skill.
 
 ## Credentials
 Stored SOPS-encrypted in `~/data/config/.secrets.env`. Load via `source ~/data/config/load-secrets.sh`. Keys:

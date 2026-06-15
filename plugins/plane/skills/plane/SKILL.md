@@ -1,4 +1,5 @@
 ---
+name: plane
 description: DEPRECATED 2026-05-06 — Plane was migrated to Atlassian Cloud Jira and the self-hosted stack was decommissioned. Use the `jira:jira` skill instead. This file is kept only as historical reference for the Plane → Jira migration.
 ---
 

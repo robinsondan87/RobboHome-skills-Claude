@@ -1,4 +1,5 @@
 ---
+name: timescale
 description: TimescaleDB on Unraid (svr001:5432) — the home metrics store, fed by per-minute pollers (cf-poll, ha-poll) and queried directly by Grafana via the Postgres datasource.
 ---
 

@@ -1,4 +1,5 @@
 ---
+name: scc-content
 description: Stafford Camera Club competition import agent — process OneDrive results and upload to the SCC Wagtail website.
 ---
 
@@ -6,6 +7,10 @@ description: Stafford Camera Club competition import agent — process OneDrive 
 
 Automates getting competition results from OneDrive onto staffordcameraclub.co.uk.
 Previously a fully manual Wagtail admin process.
+
+## Via the MetaMCP hub (Codex `scc` namespace)
+
+The SCC site now has a **native MCP** (`scc__*`, 7 tools: news create/edit/publish/list + programme create/edit/list) running next to the Django app on the Contabo VPS, exposed through the MetaMCP hub in the **`scc`** namespace (svr001, wired into Codex as the `scc` MCP server, bearer `HOMELAB_MCP_KEY`). **Prefer these tools** for posting news/updates and editing the programme — they go through the Wagtail ORM (draft→revision→publish, so you can stage drafts for human review). The Playwright/admin and competition-import flows below remain for **bulk competition uploads** (not yet in the MCP — phase 2). See the `metamcp-hub`, `scc-competitions-app-state`, and `scc-vps-access` memories.
 
 ## Architecture
 

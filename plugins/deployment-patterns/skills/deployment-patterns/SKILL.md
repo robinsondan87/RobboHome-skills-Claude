@@ -1,4 +1,5 @@
 ---
+name: deployment-patterns
 description: deployment-patterns skill for RobboHome automation.
 ---
 

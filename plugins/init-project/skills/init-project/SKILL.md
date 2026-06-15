@@ -1,4 +1,5 @@
 ---
+name: init-project
 description: init-project skill for RobboHome automation.
 ---
 

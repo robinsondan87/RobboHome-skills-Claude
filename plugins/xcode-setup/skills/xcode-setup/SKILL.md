@@ -1,4 +1,5 @@
 ---
+name: xcode-setup
 description: xcode-setup skill for RobboHome automation.
 ---
 

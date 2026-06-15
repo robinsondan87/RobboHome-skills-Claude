@@ -1,10 +1,15 @@
 ---
+name: jira
 description: Atlassian Cloud Jira (RobboHome workspace) — canonical TODO tracker. SOPS-managed creds, REST v3 quick-reference, ADF description converter, TODO discovery sweep. Replaces the deprecated `plane` skill (migrated 2026-05-06).
 ---
 
 # Skill: Jira (canonical TODO tracker)
 
 Atlassian Cloud Jira on the free tier — RobboHome workspace at `https://robbohome.atlassian.net`. Replaced self-hosted Plane on 2026-05-06; all 86 open issues from the 6 Plane projects were migrated and Plane was decommissioned. Use this skill anywhere the previous `plane:plane` skill was used.
+
+## Via the MetaMCP hub (Codex `dev` namespace)
+
+Jira is also exposed as live MCP tools through the central **MetaMCP hub** (svr001, `http://192.168.1.200:12008`), wired into Codex as the **`dev`** MCP server (bearer from `HOMELAB_MCP_KEY`; `github__*` lives in the same namespace). The `jira__*` tools (from `mcp-atlassian`, ~49 tools) cover search/create/update/transition without hand-rolling REST — **prefer them for one-off issue ops**. The `curl` REST v3 patterns below remain the fallback and the right tool for **bulk** work (migrations, the discovery sweep, scripted batch creates) and when the hub is down. See the `metamcp-hub` memory for the hub build.
 
 ## Where it lives
 

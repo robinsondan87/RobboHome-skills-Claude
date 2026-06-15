@@ -1,4 +1,5 @@
 ---
+name: docker-management
 description: docker-management skill for RobboHome automation.
 ---
 

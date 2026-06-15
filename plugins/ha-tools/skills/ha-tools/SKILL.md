@@ -1,10 +1,15 @@
 ---
+name: ha-tools
 description: ha-tools — direct HA REST + WebSocket access for OpenClaw agents (primary user: EVE Home). Read state, call services, announce on Echos, list entities by area/label/domain.
 ---
 
 # Skill: ha-tools
 
 Direct HA access for OpenClaw agents. Designed for EVE Home (the home-assistant specialist agent). Uses HA's REST + WebSocket API with a long-lived access token scoped to the agent's HA user.
+
+## Via the MetaMCP hub (Codex `home` namespace)
+
+For agents on the hub, HA is reachable as `home-assistant__*` MCP tools in the **`home`** namespace (MetaMCP on svr001, wired into Codex as the `home` MCP server, bearer `HOMELAB_MCP_KEY`) — **prefer those** for read-state / call-service / announce. The direct REST + WebSocket recipes below are for agents wired straight to HA (e.g. OpenClaw's EVE with its own scoped token) or as a fallback when the hub is unavailable. See the `metamcp-hub` memory.
 
 ## Auth
 

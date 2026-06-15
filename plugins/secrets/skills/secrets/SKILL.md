@@ -1,4 +1,5 @@
 ---
+name: secrets
 description: RobboHome shared secrets management — SOPS + age, multi-machine via robbohome-config repo.
 ---
 

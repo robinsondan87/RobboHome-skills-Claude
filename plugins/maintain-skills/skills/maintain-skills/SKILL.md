@@ -1,4 +1,5 @@
 ---
+name: maintain-skills
 description: Create or update skills in RobboHome-skills-Claude so that everything done across sessions is captured and stays current.
 allowed-tools: Bash(git*) Bash(gh*) Bash(mkdir*) Bash(cat*)
 ---

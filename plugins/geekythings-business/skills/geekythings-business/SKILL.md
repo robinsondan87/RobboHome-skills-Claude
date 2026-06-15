@@ -1,4 +1,5 @@
 ---
+name: geekythings-business
 description: GeekyThings 3D printing business context — Etsy/eBay, openclaw automation agents, and working principles.
 ---
 

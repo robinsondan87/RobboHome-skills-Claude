@@ -1,4 +1,5 @@
 ---
+name: bambu-integration
 description: Reference for integrating with Bambu Studio URL schemes — and why direct browser→slicer integration is not possible for non-MakerWorld domains.
 ---
 

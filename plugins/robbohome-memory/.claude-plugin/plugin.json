@@ -1,0 +1,5 @@
+{
+  "name": "robbohome-memory",
+  "version": "1.0.0",
+  "description": "Persistent memory of Dan's projects, infra, and preferences. Carries the index of known facts and the read/write protocol so the agent can recall and append durable knowledge across sessions."
+}

@@ -1,8 +1,13 @@
 ---
+name: cloudflare
 description: cloudflare skill for RobboHome automation.
 ---
 
 # Skill: Cloudflare Management
+
+## Via the MetaMCP hub (Codex `home` namespace)
+
+Cloudflare's full API is exposed through the hub as the **code-mode** `cloudflare__*` tools (3 tools wrapping ~2500 CF endpoints in ~1k tokens), in the **`home`** namespace (MetaMCP on svr001, Codex MCP server `home`, bearer `HOMELAB_MCP_KEY`) — the hosted `https://mcp.cloudflare.com/mcp` registered with the SOPS `CLOUDFLARE_API_TOKEN` as bearer. **Prefer it for ad-hoc CF queries/changes.** The direct API + curl recipes below stay as the fallback and for scripted bulk ops. See the `metamcp-hub` memory.
 
 ## Credentials
 SOPS-encrypted in `~/data/config/.secrets.env`. Load with `source ~/data/config/load-secrets.sh`. Keys:

@@ -1,4 +1,5 @@
 ---
+name: deploy-ios
 description: Build and deploy GymCoachHealthSync iOS app to connected iPhone via Fastlane.
 allowed-tools: Bash(git*) Bash(make*) Bash(fastlane*) Bash(xcodebuild*)
 ---

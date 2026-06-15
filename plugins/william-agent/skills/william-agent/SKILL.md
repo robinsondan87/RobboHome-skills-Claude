@@ -1,4 +1,5 @@
 ---
+name: william-agent
 description: Full setup guide for William Robinson's dedicated child-safe OpenClaw agent — WhatsApp only, Nightscout/AAPS-aware, diabetes monitoring, school support, weekly tasks.
 ---
 

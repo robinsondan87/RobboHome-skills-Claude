@@ -1,10 +1,15 @@
 ---
+name: home-assistant
 description: home-assistant — HA VM on Unraid, zigbee2mqtt, and the HA/Unraid MCP servers.
 ---
 
 # Skill: Home Assistant & MCP Servers
 
 Home Assistant OS runs as an Unraid VM (`Home Assistant`), not inside a Docker container. The `HomeAssistant_inabox` container on Unraid is just a helper — HA itself is the KVM VM.
+
+## Via the MetaMCP hub (Codex `home` namespace)
+
+HA is exposed as live MCP tools through the central **MetaMCP hub** (svr001, `http://192.168.1.200:12008`), wired into Codex as the **`home`** MCP server (bearer from `HOMELAB_MCP_KEY`). The hub proxies the HA HTTP MCP as `home-assistant__*` (~83 tools), alongside `unifi-network__*`, `unraid__*`, and `cloudflare__*` in the same namespace. **Prefer these tools** for reading state, calling services, and config edits; the direct REST/WebSocket access below is the fallback. The HA best-practices skill still governs *how* you build automations/dashboards. See the `metamcp-hub` memory.
 
 ## Access
 | | |

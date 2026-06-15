@@ -1,4 +1,5 @@
 ---
+name: server-setup
 description: server-setup skill for RobboHome automation.
 ---
 

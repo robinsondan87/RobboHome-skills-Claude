@@ -1,4 +1,5 @@
 ---
+name: cicd
 description: cicd skill for RobboHome automation.
 ---
 

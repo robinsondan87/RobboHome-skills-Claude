@@ -1,10 +1,15 @@
 ---
+name: dan-blog-content
 description: Dan's personal site Production Shaped (productionshaped.com). Use whenever Dan mentions "blog", "the blog", "my blog", "Production Shaped", "productionshaped", "productionshaped.com", "blog post", "blog idea", "blog draft", "draft a post", "publish a post", "add to the site", "/admin/ideas", "the inbox", "dan-blog", or the dan-blog-content agent. Also use for blog voice rules, image placeholder convention, frontmatter, Ideas JSON API (POST/PATCH /api/ideas), admin UI workflows, and recovery for the Discord blog agent. Production Shaped is an editorial publication brand replacing the older RobboHome framing.
 ---
 
 # Dan's blog — admin, API, and agent
 
 A small companion reference so future-Claude knows the blog stack exists without Dan re-explaining.
+
+## Via MCP / the MetaMCP hub (Codex `business` namespace + `productionshaped` server)
+
+Production Shaped drafting is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (`create_draft` / `update_draft` / `list_ideas` / `list_posts` / `get_post` — **drafting only, never publishes**; launched via `~/.local/bin/ps-mcp`), and the same server in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). **Prefer these tools** for creating/updating drafts; the Ideas JSON API (`POST/PATCH /api/ideas`) below is the fallback and the reference for field shapes. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
 
 ## Brand state
 

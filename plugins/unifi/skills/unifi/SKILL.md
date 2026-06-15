@@ -1,10 +1,15 @@
 ---
+name: unifi
 description: UniFi specialist context — UDM at 192.168.1.1, sirkirby/unifi-network-mcp via OpenClaw, dedicated mcp-beacon admin account, Phase 2 write scope.
 ---
 
 # Skill: UniFi (📡 Beacon)
 
 Beacon is the OpenClaw specialist agent for the home UniFi network. It runs locally on this Mac and talks to the UDM via the `sirkirby/unifi-network-mcp` MCP server, spawned on-demand by OpenClaw.
+
+## Via the MetaMCP hub (Codex `home` namespace)
+
+UniFi is now hosted centrally: `unifi-network-mcp` runs as a stdio server **inside the MetaMCP hub** on svr001 (not spawned per-agent), exposed in the **`home`** namespace as `unifi-network__*` and wired into Codex as the `home` MCP server (bearer `HOMELAB_MCP_KEY`). **Prefer those tools.** The per-agent OpenClaw/Beacon setup below remains the fallback and the record of how the OpenClaw specialist runs locally. See the `metamcp-hub` memory.
 
 ## Controller
 

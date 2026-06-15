@@ -148,6 +148,10 @@
     {
       "name": "maintain-skills",
       "source": "./plugins/maintain-skills"
+    },
+    {
+      "name": "robbohome-memory",
+      "source": "./plugins/robbohome-memory"
     }
   ]
 }

@@ -1,4 +1,5 @@
 ---
+name: server-bootstrap
 description: server-bootstrap skill for RobboHome automation.
 ---
 

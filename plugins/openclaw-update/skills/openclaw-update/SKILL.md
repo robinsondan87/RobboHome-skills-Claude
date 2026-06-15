@@ -1,4 +1,5 @@
 ---
+name: openclaw-update
 description: openclaw-update skill for RobboHome automation.
 ---
 

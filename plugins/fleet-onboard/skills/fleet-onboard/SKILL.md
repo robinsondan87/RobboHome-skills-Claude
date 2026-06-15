@@ -1,4 +1,5 @@
 ---
+name: fleet-onboard
 description: Onboard a new host into the RobboHome fleet — SSH, SOPS, New Relic, backup target, periodic config pull. The cross-cutting "what fleet membership means" runbook, separate from OS-specific bootstrap.
 ---
 

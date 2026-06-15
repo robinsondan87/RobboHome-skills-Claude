@@ -1,4 +1,5 @@
 ---
+name: ollama
 description: ollama skill for RobboHome automation.
 ---
 

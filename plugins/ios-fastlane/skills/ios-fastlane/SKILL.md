@@ -1,4 +1,5 @@
 ---
+name: ios-fastlane
 description: ios-fastlane skill for RobboHome automation.
 ---
 

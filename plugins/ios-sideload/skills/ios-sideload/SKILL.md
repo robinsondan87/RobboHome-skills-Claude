@@ -1,4 +1,5 @@
 ---
+name: ios-sideload
 description: ios-sideload skill for RobboHome automation.
 ---
 

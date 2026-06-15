@@ -1,4 +1,5 @@
 ---
+name: deploy-geekythings
 description: Deploy GeekyThings product catalogue to scc_contabo via CI/CD — bump version, push, and monitor the GitHub Actions workflow.
 allowed-tools: Bash(git*) Bash(gh*) Bash(make*)
 ---

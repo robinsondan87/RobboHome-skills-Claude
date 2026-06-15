@@ -1,4 +1,5 @@
 ---
+name: geekythings-listings
 description: Create or update GeekyThings product listings in the Product Manager app via API workflows, including tags/colours/sizes/readme/pricing/media, syncing marketplace listings, or moving drafts live.
 ---
 

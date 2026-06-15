@@ -1,4 +1,5 @@
 ---
+name: deploy-gym
 description: Deploy Gym Coach AI (gymcoachai monorepo) to the Contabo VPS via push-to-main CI/CD, and monitor the GitHub Actions workflow.
 allowed-tools: Bash(git*) Bash(gh*) Bash(ssh*) Bash(curl*) Bash(pnpm*)
 ---

@@ -1,4 +1,5 @@
 ---
+name: svr003
 description: svr003 — remote Raspberry Pi backup server management.
 ---
 

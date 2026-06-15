@@ -1,4 +1,5 @@
 ---
+name: portainer
 description: portainer skill for RobboHome automation.
 ---
 

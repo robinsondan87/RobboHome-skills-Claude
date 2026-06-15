@@ -1,4 +1,5 @@
 ---
+name: register-runner
 description: register-runner skill for RobboHome automation.
 ---
 

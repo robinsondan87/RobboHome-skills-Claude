@@ -1,10 +1,15 @@
 ---
+name: newrelic
 description: newrelic — New Relic infrastructure agent on all hosts (Unraid, Ubuntu, Debian arm64, Mac) plus account/API key locations.
 ---
 
 # Skill: New Relic
 
 EU-region account. Infrastructure agents run on all six hosts: svr001, scc_contabo, svr003, daniels-macbook-pro-1, robbo-mac-mini, vmi3091030.
+
+## Querying NR via the MetaMCP hub (Codex `observability` namespace)
+
+New Relic has no direct MCP, but its data is queryable through the hub: the **`grafana`** server (Codex `observability` MCP server, bearer `HOMELAB_MCP_KEY`) wraps Grafana, whose Infinity datasource runs NRQL against this account's NerdGraph (EU). **Prefer the `grafana__*` tools** (or the `grafana` skill's NRQL patterns) for reading metrics/alerts. This skill stays the reference for the **agent installs + license/API keys** themselves, which the hub does not manage. See the `metamcp-hub` and `grafana` memories/skills.
 
 ## Account & keys
 - **Region**: EU (license key prefix `eu01xx`, agent ships to EU endpoint automatically)

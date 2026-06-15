@@ -1,4 +1,5 @@
 ---
+name: deploy
 description: deploy skill for RobboHome automation.
 ---
 

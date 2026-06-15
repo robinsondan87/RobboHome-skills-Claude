@@ -1,4 +1,5 @@
 ---
+name: svr002
 description: RobboHome fleet host (Contabo VPS) — access, layout, and ops. (Formerly svr002; svr002 was retired 2026-05-29 and its workloads migrated here.)
 ---
 
@@ -11,7 +12,7 @@ description: RobboHome fleet host (Contabo VPS) — access, layout, and ops. (Fo
 > separate and still live.)
 
 ## Access
-- SSH: `ssh scc_contabo` (alias in `~/.ssh/config`) — Tailscale IP `100.80.48.12`, user `root`
+- SSH: `ssh scc_contabo` (alias in `~/.ssh/config`) — Tailscale IP `100.80.48.12`, user `root`. Tailscale machine name and OS hostname are both `contabo-fleet` as of 2026-05-30 (was `vmi3091030`).
 - Public IP: `161.97.66.102`
 - Reached over Tailscale; the box's own Tailscale SSH ACL is `action: accept` (no per-connection browser re-auth)
 
@@ -21,7 +22,7 @@ self-contained Docker Compose stack under `/opt/stacks/<app>/`:
 
 | App | Stack dir | Local port | Public URL |
 |-----|-----------|-----------|------------|
-| scc (Wagtail) | `/home/sccadmin/SCC_V2/...` (Phase 2: → /opt/stacks/scc) | :8000 | staffordcameraclub.co.uk |
+| scc (Wagtail) | `/opt/stacks/scc` | 127.0.0.1:8000 | staffordcameraclub.co.uk |
 | loop-coach-v2 | `/opt/stacks/loop-coach-v2` | 127.0.0.1:3030 | loopcoach.robbohome.com |
 | brickswap (+brickhive) | `/opt/stacks/brickswap` | 127.0.0.1:8080 | brickswap / brickhive.robbohome.com |
 | geekythings | `/opt/stacks/geekythings` | 127.0.0.1:3002 | geekythings.robbohome.com |

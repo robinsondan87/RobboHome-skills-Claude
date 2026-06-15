@@ -1,10 +1,15 @@
 ---
+name: grafana
 description: grafana — Grafana on Unraid using New Relic NerdGraph as a data source via the Infinity plugin.
 ---
 
 # Skill: Grafana
 
 Self-hosted Grafana on svr001 (Unraid). Pulls metrics from New Relic via NerdGraph (no second metrics store). Public access via Cloudflare Tunnel + Cloudflare Access.
+
+## Via the MetaMCP hub (Codex `observability` namespace)
+
+Grafana is exposed as live MCP tools through the central **MetaMCP hub** (svr001, `http://192.168.1.200:12008`), wired into Codex as the **`observability`** MCP server (bearer from `HOMELAB_MCP_KEY`). The `grafana__*` tools (~56, from the `mcp/grafana` container with a Viewer service-account token) let you query dashboards, datasources, and run NRQL/SQL against the wired sources — **prefer them for reading metrics, alerts, and dashboard state**. The dashboard-provisioning API calls + Infinity/NRQL gotchas below remain the reference for **building/editing** dashboards and datasources (the hub token is read-only Viewer). See the `metamcp-hub` memory.
 
 ## URLs and creds
 | | |

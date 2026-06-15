@@ -1,4 +1,5 @@
 ---
+name: gpu
 description: gpu skill for RobboHome automation.
 ---
 
