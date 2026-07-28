@@ -65,12 +65,12 @@ Two independent causes — check both:
 
 ## MCP servers
 
-Two MCP servers are registered with Claude Code (user scope, in `~/.claude.json`):
+Home Assistant and Unraid are registered in the central MetaMCP `home` namespace. Codex should use `http://192.168.1.200:12008/metamcp/home/mcp`; the direct upstream endpoints are operational fallbacks.
 
-| Name | Purpose | Endpoint | Auth |
+| Name | Purpose | Upstream endpoint | Notes |
 |---|---|---|---|
-| `home-assistant` | HA state/control via HAOS add-on | `http://192.168.1.151:9583/<secret-path>` | secret path in URL |
-| `unraid` | Unraid GraphQL wrapper | `http://192.168.1.200:6970/mcp` | Bearer token |
+| `home-assistant` | HA state/control via HAOS add-on | `http://192.168.1.151:9583/<secret-path>` | Secret path in URL |
+| `unraid` | Unraid GraphQL wrapper | `http://192.168.1.200:8768/mcp` | MetaMCP connects directly |
 
 ### home-assistant MCP
 [`ha-mcp` HAOS add-on](https://github.com/homeassistant-ai/ha-mcp).
@@ -80,33 +80,12 @@ Two MCP servers are registered with Claude Code (user scope, in `~/.claude.json`
 ### unraid MCP
 [`jmagar/unraid-mcp`](https://github.com/jmagar/unraid-mcp), Docker container on Unraid.
 
-Deployment (run from a host with secrets loaded — Mac or scc_contabo):
-```bash
-source ~/data/config/load-secrets.sh
+The retained container is named `mcp-unraid`, uses host networking, listens on port `8768`, and points `UNRAID_API_URL` at `http://localhost`. The older direct container named `unraid-mcp` on port `6970` was retired on 2026-07-28. Do not recreate it or point clients at `6970`.
 
-ssh svr001 docker run -d --name=unraid-mcp --restart=unless-stopped \
-  -p 6970:6970 \
-  --memory 256m --cpus 0.5 \
-  -e UNRAID_API_URL=http://192.168.1.200/graphql \
-  -e UNRAID_API_KEY="$UNRAID_API_KEY" \
-  -e UNRAID_MCP_BEARER_TOKEN="$UNRAID_MCP_BEARER_TOKEN" \
-  -e UNRAID_MCP_TRANSPORT=streamable-http \
-  ghcr.io/jmagar/unraid-mcp:latest
-```
-
-- Unraid API key is generated in Unraid UI → Settings → Management Access → API Keys
-- Bearer token is `openssl rand -hex 32`, used by the MCP client (Claude Code) to authenticate to this server
-
-### Adding either to Claude Code
-```bash
-claude mcp add --transport http --scope user home-assistant "http://192.168.1.151:9583/<secret-path>"
-claude mcp add --transport http --scope user unraid "http://192.168.1.200:6970/mcp" --header "Authorization: Bearer <bearer>"
-claude mcp list   # verify ✓ Connected
-```
-Restart Claude Code after adding so tools load.
+Verify the current route by calling an `unraid__*` tool through the MetaMCP `home` namespace. A plain HTTP GET to `/mcp` returning `406` also confirms the Streamable HTTP endpoint is listening, although it is not a complete functional test.
 
 ### Remote access
-Both endpoints are LAN-only. For use from the Mac off-network:
+The upstream endpoints are LAN-only. For use from the Mac off-network:
 - Tailscale (install inside HAOS for HA MCP; Unraid already has Tailscale)
 - Cloudflare Tunnel via the existing svr001 tunnel (auth via Cloudflare Access)
 
