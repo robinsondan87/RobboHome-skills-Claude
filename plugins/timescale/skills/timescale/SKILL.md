@@ -1,78 +1,78 @@
 ---
 name: timescale
-description: TimescaleDB on Unraid (svr001:5432) — the home metrics store, fed by per-minute pollers (cf-poll, ha-poll) and queried directly by Grafana via the Postgres datasource.
+description: TimescaleDB on svr005:5432 — the home metrics store fed by per-minute systemd collectors and queried by Grafana.
 ---
 
 # Skill: Timescale (home metrics)
 
-A single Postgres + TimescaleDB extension instance on Unraid, used as the source of truth for **anything we want time-series-shaped without paying NR ingest** — Cloudflare zone analytics, Home Assistant state history, and future custom feeds. Same Grafana dashboards read from this and from NR side-by-side.
+A single Postgres + TimescaleDB extension instance on `svr005`, used as the
+source of truth for **anything we want time-series-shaped without paying NR
+ingest**. Grafana runs beside it and reads this database over the compose
+network while LAN clients can use port 5432.
 
 ## Connection
 
 | | |
 |---|---|
-| Host | `svr001` (Unraid) |
+| Host | `svr005` (`192.168.1.92`) |
 | Port | `5432` |
-| Container | `timescaledb` (image `timescale/timescaledb:latest-pg16`) |
+| Container | `timescaledb` (image `timescale/timescaledb:2.26.3-pg16`) |
 | Database | `metrics` (user: `metrics`) |
-| Data dir on host | `/mnt/user/appdata/timescaledb/data` |
+| Data dir on host | `/srv/monitoring/timescaledb` |
+| Compose bundle | `/opt/monitoring/compose.yaml` |
 | Creds | SOPS keys `TIMESCALE_HOST` / `TIMESCALE_PORT` / `TIMESCALE_USER` / `TIMESCALE_PASS` / `TIMESCALE_DB` |
 
 ## Deploy
 ```bash
-source ~/data/config/load-secrets.sh
-ssh svr001 "
-docker rm -f timescaledb 2>/dev/null
-mkdir -p /mnt/user/appdata/timescaledb/data
-docker run -d --name=timescaledb --restart=unless-stopped \
-  -p 5432:5432 \
-  --memory 2g --cpus 2.0 \
-  -v /mnt/user/appdata/timescaledb/data:/var/lib/postgresql/data \
-  -e POSTGRES_USER=$TIMESCALE_USER \
-  -e POSTGRES_PASSWORD=$TIMESCALE_PASS \
-  -e POSTGRES_DB=$TIMESCALE_DB \
-  --label net.unraid.docker.managed=dockerman \
-  timescale/timescaledb:latest-pg16"
+ssh svr005-lan 'cd /opt/monitoring && ./start-stack.sh up -d timescaledb'
+ssh svr005-lan 'docker exec timescaledb pg_isready -U metrics -d metrics'
 ```
+
+Keep the image pinned to `2.26.3-pg16` until an intentional Timescale
+extension upgrade is planned. Restoring the 2.26.3 catalogue into a newer
+image failed before `timescaledb_post_restore()` could run.
 
 Quick psql shell:
 ```bash
-source ~/data/config/load-secrets.sh
-ssh svr001 "docker exec -it -e PGPASSWORD='$TIMESCALE_PASS' timescaledb psql -U $TIMESCALE_USER -d $TIMESCALE_DB"
+ssh -t svr005-lan 'docker exec -it timescaledb psql -U metrics -d metrics'
 ```
 
 ## Active hypertables
 
 | Table | Granularity | Retention | Compression | Source |
 |---|---|---|---|---|
-| `cf_zone_stats` | 1 min | 1 year | after 7d | `cf-poll.sh` (totals per zone) |
-| `cf_country_stats` | 1 min | 1 year | after 7d | `cf-poll.sh` (per-country) |
-| `cf_status_stats` | 1 min | 1 year | after 7d | `cf-poll.sh` (per-status-code) |
-| `cf_host_stats` | 1 min | 1 year | after 7d | `cf-poll.sh` (per-subdomain) |
-| `ha_state_history` | per state-change | 1 year | after 7d | `ha-poll.sh` (HA `/api/states`) |
-| `unifi_device_stats` | 1 min | 1 year | after 7d | `unifi-poll.sh` (`/stat/device`) |
+| `cf_zone_stats` | 1 min | 180 days | after 7d | `cf-poll.sh` (totals per zone) |
+| `cf_country_stats` | 1 min | 180 days | after 7d | `cf-poll.sh` (per-country) |
+| `cf_status_stats` | 1 min | 180 days | after 7d | `cf-poll.sh` (per-status-code) |
+| `cf_host_stats` | 1 min | 180 days | after 7d | `cf-poll.sh` (per-subdomain) |
+| `ha_state_history` | per state-change | 180 days | after 7d | `ha-poll.sh` (HA `/api/states`) |
+| `unifi_device_stats` | 1 min | 180 days | after 7d | `unifi-poll.sh` (`/stat/device`) |
 | `unifi_client_stats` | 1 min | 90 days | after 3d | `unifi-poll.sh` (`/stat/sta`) |
-| `unifi_site_stats` | 1 min | 1 year | after 7d | `unifi-poll.sh` (`/stat/health`) |
-| `unifi_speedtest` | per test (~1/day) | 2 years | none | `unifi-poll.sh` (`archive.speedtest`) |
-| `media_app_stats` | 1 min | 1 year | after 7d | `media-poll.sh` (Sonarr/Radarr/Prowlarr/Jellyfin/Jellyseerr/ABS) |
-| `unraid_array` | 1 min | 2 years | after 7d | `unraid-poll.sh` (GraphQL `array.parityCheckStatus`) |
+| `unifi_site_stats` | 1 min | 180 days | after 7d | `unifi-poll.sh` (`/stat/health`) |
+| `unifi_speedtest` | per test (~1/day) | 180 days | none | `unifi-poll.sh` (`archive.speedtest`) |
+| `media_app_stats` | 1 min | 180 days | after 7d | `media-poll.sh` (media stack + workers) |
+| `media_download_events` | event | 180 days | none | `media-poll.sh` (Arr imports + downloader completions) |
+| `unraid_array` | 1 min | 180 days | after 7d | `unraid-poll.sh` (GraphQL `array.parityCheckStatus`) |
 | `unraid_disk` | 1 min | 90 days | after 7d | `unraid-poll.sh` (GraphQL `array.disks` + `parities` + `caches`) |
-| `unraid_notifications` | event | none | none | `unraid-poll.sh` (GraphQL `notifications.list`, idempotent on `notif_id`) |
+| `unraid_notifications` | event | 180 days | none | `unraid-poll.sh` (GraphQL `notifications.list`, idempotent on `notif_id`) |
 
 All hypertables: `chunk_time_interval => '1 day'`, `compress_segmentby` set to the most-faceted text column.
 
 ## Pollers
 
-Both live on Unraid at `/mnt/user/appdata/scripts/`. Each is invoked from root's crontab — see `/boot/config/crontab.robbohome` (persisted across reboots via `/boot/config/go`):
+Production pollers live at `/opt/monitoring/collectors/` on `svr005`. The
+templated `monitoring-collector@.service` and `.timer` units run each poller
+once per minute with an overlap-preventing lock. Check them with:
 
-```cron
-# CF analytics — per-minute via httpRequestsAdaptiveGroups
-* * * * * CLOUDFLARE_API_TOKEN='…' TIMESCALE_PASS='…' /mnt/user/appdata/scripts/cf-poll.sh >> /var/log/cf-poll.log 2>&1
-# HA states — per-minute snapshot of /api/states
-* * * * * HOMEASSISTANT_URL='…' HOMEASSISTANT_TOKEN='…' TIMESCALE_PASS='…' /mnt/user/appdata/scripts/ha-poll.sh >> /var/log/ha-poll.log 2>&1
+```bash
+ssh svr005-lan 'systemctl list-timers --all | grep monitoring-collector'
+ssh svr005-lan 'journalctl -u monitoring-collector@media-poll.service -n 50'
 ```
 
-Unraid uses **vixie crond**, which **doesn't read `/etc/cron.d/`** — must be in `/var/spool/cron/crontabs/root`. The `/boot/config/go` snippet rebuilds it on boot.
+The old Unraid poller cron entries were removed at cutover. Their rollback copy
+is `/root/crontab.pre-svr005-monitoring-20260811T122045Z`. The operational
+Usenet backlog feeder and media backlog controller remain on Unraid; they are
+not metric collectors.
 
 ### `cf-poll.sh`
 Hits Cloudflare's GraphQL Analytics endpoint with **four sub-queries in one POST**:
@@ -91,8 +91,15 @@ Polls the Unraid 7.2 GraphQL endpoint at `http://192.168.1.200/graphql` (auth: `
 `notifications.list(filter: {limit: N, offset: 0, type: UNREAD})` requires a non-null filter argument — easy to miss. Idempotent insert on `(host, notif_id)` so the same notification doesn't duplicate across polls.
 
 ### `media-poll.sh`
-Polls 6 *arr-stack apps + Jellyfin every minute, all on `192.168.1.200`. Wide-table writes to `media_app_stats(ts, app, metric, label, value_num)` — keeps cardinality low by aggregating per-state rather than per-title:
+Polls the media services and qBittorrent on Unraid plus SABnzbd on `svr004`
+every minute. Wide-table writes to
+`media_app_stats(ts, app, metric, label, value_num)` keep cardinality low by
+aggregating per-state rather than per-title:
 - **Sonarr / Radarr** — series/movie counts, episodes-on-disk, missing, queue (warnings + errors), per-root-folder diskspace.
+- **Sonarr / Radarr import events** — latest successful import history is
+  deduplicated into `media_download_events`; the initial backfill captured
+  1,000 Sonarr and all 333 Radarr imports, while steady-state polling checks
+  the latest 100 per app.
 - **Prowlarr** — per-indexer queries, grabs, failures, avg response time (label=indexer name).
 - **Jellyfin** — `/Items/Counts` (movies/series/episodes/boxsets/etc), active sessions, transcoding sessions, connected clients.
 - **Jellyseerr** — `/api/v1/request/count` (total/movie/tv/pending/approved/processing/available/declined).
@@ -103,6 +110,13 @@ Each app's auth differs:
 - Jellyfin → `Authorization: MediaBrowser Token=…` header
 - ABS → `Authorization: Bearer …` header
 - qBittorrent → `POST /api/v2/auth/login` with `username=…&password=…` form body + `Referer` header. Returns `Ok.` on success and sets a session cookie. Captures: global dl/up speed, total library size, downloaded/uploaded totals (for share ratio), torrents-by-state buckets (downloading/stalledDL/uploading/seeding/error/etc).
+- SABnzbd → API key in the `apikey` query parameter. SAB labels every queued
+  slot as `Downloading`, so active NZBs must come from the global queue state;
+  counting slot statuses can turn one active job into hundreds.
+- qBittorrent completion events are stored by torrent hash in
+  `media_download_events`. Cumulative session transfer counters can be turned
+  into bytes transferred over a dashboard range by summing only positive
+  deltas, which survives qBittorrent container restarts.
 
 **qBittorrent password reset** if locked out: stop container, edit `/mnt/user/appdata/qbittorrent/qBittorrent/qBittorrent.conf`, replace `WebUI\Password_PBKDF2=...` with the well-known `adminadmin` hash (`@ByteArray(ARQ77eY1NUZaQsuDHbIMCA==:0WMRkYTUWVT9wVvdDtHAjU9b3b7uB8NR1Gur2hmQCvCDpm39Q+PsJRJPaCU51dEiz+dTzh8qbPsL8WkFljQYFQ==)`), start container. Login with existing username + password `adminadmin`.
 
@@ -175,21 +189,25 @@ WHERE entity_id = 'sensor.octopus_energy_electricity_*_current_demand'
 
 ## Adding a new poller (template)
 
-1. Create a hypertable with `chunk_time_interval => '1 day'`, `compress_segmentby`, and `add_compression_policy(... '7 days')` + `add_retention_policy(... '1 year')`.
-2. Drop a poller script into `/mnt/user/appdata/scripts/`.
+1. Create a hypertable with `chunk_time_interval => '1 day'`,
+   `compress_segmentby`, and `add_compression_policy(... '7 days')` plus the
+   appropriate 90- or 180-day retention policy.
+2. Drop a poller script into `/opt/monitoring/collectors/` on `svr005`.
 3. Build the SQL via `jq -r` from the API response — **never** interpolate fields into shell heredocs (quoting hell). Pipe the SQL to `docker exec -i timescaledb psql`.
-4. Append the cron line to `/boot/config/crontab.robbohome` and re-install via `( crontab -l | grep -v <script> ; cat /boot/config/crontab.robbohome ) | crontab -`.
+4. Enable `monitoring-collector@<script-without-.sh>.timer`.
 5. Add a panel in Grafana using the `Timescale (metrics)` Postgres datasource.
 
 ## Gotchas
 
 - **Grafana 11+ Postgres datasource** needs `database` set inside `jsonData`, not just at the top level. See `skills/grafana/SKILL.md` for the fix.
-- **Unraid vixie crond** ignores `/etc/cron.d/` — must use root's crontab.
 - **Compression** is enabled per-hypertable but **chunks compress only after the policy interval** (we set 7 days). Decompression of recent chunks is automatic on query.
 - **Drops + recreates** of a hypertable also drop policies — re-add `add_compression_policy` / `add_retention_policy` after any `DROP TABLE` rebuild.
+- **Backups** run at 02:45 Europe/London and copy to
+  `/mnt/user/backups/svr005-monitoring` on Unraid. Retention enforcement runs at
+  03:20. Both are systemd timers on `svr005`.
 
 ## Related Skills
-- `skills/grafana/SKILL.md` — Grafana on Unraid + dashboards reading from this DB
+- `skills/grafana/SKILL.md` — Grafana beside this database on `svr005`
 - `skills/cloudflare/SKILL.md` — CF token/API basics (the `cf-poll.sh` consumer)
 - `skills/home-assistant/SKILL.md` — HA URL + long-lived token (the `ha-poll.sh` consumer)
 - `skills/secrets/SKILL.md` — where the `TIMESCALE_*` keys live

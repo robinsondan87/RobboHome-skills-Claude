@@ -1,11 +1,13 @@
 ---
 name: grafana
-description: grafana — Grafana on Unraid using New Relic NerdGraph as a data source via the Infinity plugin.
+description: grafana — Grafana on svr005 using TimescaleDB and New Relic NerdGraph through the Infinity plugin.
 ---
 
 # Skill: Grafana
 
-Self-hosted Grafana on svr001 (Unraid). Pulls metrics from New Relic via NerdGraph (no second metrics store). Public access via Cloudflare Tunnel + Cloudflare Access.
+Self-hosted Grafana on `svr005` (Raspberry Pi 4). It reads home metrics from
+the local TimescaleDB container and fleet metrics from New Relic via NerdGraph.
+Public access uses Cloudflare Tunnel + Cloudflare Access.
 
 ## Via the MetaMCP hub (Codex `observability` namespace)
 
@@ -15,26 +17,22 @@ Grafana is exposed as live MCP tools through the central **MetaMCP hub** (svr001
 | | |
 |---|---|
 | Public URL | https://grafana.robbohome.com (Cloudflare Access gated by Google IDP) |
-| LAN URL | http://192.168.1.200:3030 |
+| LAN URL | http://192.168.1.92:3030 |
 | Container port mapping | host 3030 → container 3000 |
 | Admin user/pass | `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASS` (SOPS-encrypted in `~/data/config/.secrets.env`, see `skills/secrets/`) |
-| Data dir | `/mnt/user/appdata/grafana` (container UID 472) |
+| Compose bundle | `/opt/monitoring/compose.yaml` on `svr005` |
+| Data dir | `/srv/monitoring/grafana` (container UID 472) |
 
 ## Deploy
 ```bash
-ssh svr001 "mkdir -p /mnt/user/appdata/grafana && chown -R 472:472 /mnt/user/appdata/grafana
-docker rm -f grafana 2>/dev/null
-docker run -d --name=grafana --restart=unless-stopped \
-  -p 3030:3000 \
-  --memory 768m --cpus 1.0 \
-  -v /mnt/user/appdata/grafana:/var/lib/grafana \
-  -e GF_SECURITY_ADMIN_USER=admin \
-  -e GF_SECURITY_ADMIN_PASSWORD=changeme \
-  -e GF_INSTALL_PLUGINS='yesoreyeram-infinity-datasource' \
-  -e GF_SERVER_ROOT_URL='https://grafana.robbohome.com' \
-  --label net.unraid.docker.managed=dockerman \
-  grafana/grafana:latest"
+ssh svr005-lan 'cd /opt/monitoring && ./start-stack.sh pull'
+ssh svr005-lan 'cd /opt/monitoring && ./start-stack.sh up -d'
+curl -fsS http://192.168.1.92:3030/api/health
 ```
+
+The compose bundle pins Grafana to `13.1.1` with a 768 MB / 1 CPU cap. Do not
+recreate it with an ad-hoc `docker run`; `start-stack.sh` loads the SOPS-managed
+admin password and keeps Grafana paired with the local TimescaleDB service.
 
 **Don't install `grafana-newrelic-datasource`** — it's an Enterprise plugin that needs a paid Grafana license and won't load on free Grafana. Use `yesoreyeram-infinity-datasource` instead (free, queries any HTTP/JSON/GraphQL/CSV/XML, well-maintained).
 
@@ -48,7 +46,9 @@ source ~/data/config/load-secrets.sh
 # 2. Create DNS CNAME record: grafana.robbohome.com -> $CLOUDFLARE_TUNNEL_ID.cfargotunnel.com (proxied)
 # 3. Create Cloudflare Access app with email policy
 ```
-See `skills/cloudflare/SKILL.md` for the exact API call patterns. Grafana's Access app id was `5169bf32-ce09-4123-a7b4-c5675ef0b636` (subject to change).
+The tunnel route targets `http://192.168.1.92:3030`. See
+`skills/cloudflare/SKILL.md` for the exact API call patterns. Grafana's Access
+app id was `5169bf32-ce09-4123-a7b4-c5675ef0b636` (subject to change).
 
 ## NerdGraph data source (Infinity)
 Provision via API. Source secrets via the SOPS helper (see `skills/secrets/`):
@@ -56,7 +56,7 @@ Provision via API. Source secrets via the SOPS helper (see `skills/secrets/`):
 source ~/data/config/load-secrets.sh
 # now $GRAFANA_ADMIN_PASS, $NEW_RELIC_USER_API_KEY etc. are exported
 
-curl -s -u "admin:$GRAFANA_ADMIN_PASS" -X POST http://192.168.1.200:3030/api/datasources \
+curl -s -u "admin:$GRAFANA_ADMIN_PASS" -X POST http://192.168.1.92:3030/api/datasources \
   -H 'Content-Type: application/json' \
   -d "{
     \"name\": \"New Relic (NerdGraph)\",
@@ -198,7 +198,9 @@ FACET entityName, mountPoint LIMIT 50
 Point the datasource URL at `https://httpbin.org/anything` temporarily, set `root_selector: "headers"` in the panel, and httpbin echoes the exact request (headers + body) back. Restore the URL once done.
 
 ## Starter dashboard
-Provisioned dashboard `Home Infrastructure (NR)` at uid `a500e9d5-d384-453d-8128-a8b55414dd89` shows the 5-host fleet (svr001/2/3 + 2 Macs):
+Provisioned dashboard `Home Infrastructure (NR)` at uid
+`a500e9d5-d384-453d-8128-a8b55414dd89` discovers the reporting fleet
+dynamically rather than maintaining a static host list:
 - **Hosts** table — name, OS, role, current CPU%, Mem%, last seen
 - **CPU % by host** timeseries
 - **Memory % by host** timeseries
@@ -227,12 +229,21 @@ Always wrap in the GraphQL envelope:
 
 | UID | Title | Default range | Refresh | Datasource(s) |
 |---|---|---|---|---|
+| `robbohome-overview` | RobboHome overview | current | 30s | Timescale + alert list |
 | `a500e9d5-d384-453d-8128-a8b55414dd89` | Home Infrastructure (NR) | now-1h | 30s | NerdGraph (Infinity) |
 | `cloudflare` | Cloudflare | now-3h | 1m | Timescale (Postgres) |
 | `home-assistant` | Home Assistant | now-24h | 1m | Timescale (Postgres) |
 | `unifi` | UniFi | now-3h | 1m | Timescale (Postgres) |
-| `media` | Media stack | now-24h | 1m | Timescale (Postgres) |
+| `media` | Media stack | now-7d | 30s | Timescale (Postgres) |
 | `unraid` | Unraid | now-24h | 1m | Timescale (Postgres) |
+
+The `media` dashboard was rebuilt on 2026-07-30 with a seven-day operational
+overview and 30-second refresh. Its first viewport shows current and average
+qBittorrent rates, positive-delta bytes transferred, completed releases,
+library imports, active/waiting torrents, Arr queue depth, and queue issues.
+It also includes transfer-rate history, completions by day, and a recent
+activity table backed by `media_download_events`. The older library,
+playback/storage, Prowlarr, Seerr, and Audiobookshelf sections remain below.
 
 ## Postgres datasource — Grafana 11+ gotcha
 
@@ -242,7 +253,7 @@ Grafana 11.x changed how the Postgres datasource reads its database name. The le
 {
   "name": "Timescale (metrics)",
   "type": "grafana-postgresql-datasource",
-  "url": "192.168.1.200:5432",
+  "url": "timescaledb:5432",
   "user": "metrics",
   "database": "metrics",
   "jsonData": {
