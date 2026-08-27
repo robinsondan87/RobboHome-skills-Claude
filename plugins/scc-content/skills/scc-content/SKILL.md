@@ -1,80 +1,79 @@
 ---
 name: scc-content
-description: Stafford Camera Club competition import agent — process OneDrive results and upload to the SCC Wagtail website.
+description: Stafford Camera Club content and competition import workflows through the native SCC MCP and Wagtail fallback.
 ---
 
-# SCC Content Agent
+# SCC content
 
-Automates getting competition results from OneDrive onto staffordcameraclub.co.uk.
-Previously a fully manual Wagtail admin process.
+Use the native SCC MCP for news, programme and competition operations on
+staffordcameraclub.co.uk. It runs as the separate `scc-mcp-1` service on the
+Contabo host and calls the canonical Django/Wagtail domain logic.
 
-## Via the MetaMCP hub (Codex `scc` namespace)
+## MetaMCP access
 
-The SCC site now has a **native MCP** (`scc__*`, 7 tools: news create/edit/publish/list + programme create/edit/list) running next to the Django app on the Contabo VPS, exposed through the MetaMCP hub in the **`scc`** namespace (svr001, wired into Codex as the `scc` MCP server, bearer `HOMELAB_MCP_KEY`). **Prefer these tools** for posting news/updates and editing the programme — they go through the Wagtail ORM (draft→revision→publish, so you can stage drafts for human review). The Playwright/admin and competition-import flows below remain for **bulk competition uploads** (not yet in the MCP — phase 2). See the `metamcp-hub`, `scc-competitions-app-state`, and `scc-vps-access` memories.
+The MetaMCP hub exposes the native server in the `scc` namespace. Authentication
+is configured in the connection. Never place bearer values in prompts, query
+strings, filenames or tool arguments.
 
-## Architecture
+The competition tools added in SCC `v0.7.14` are:
 
-- OneDrive synced locally at `~/OneDrive/SCC/Competition/Entries/`
-- Agent scripts at `/Users/robbohomebot/scc-content/scripts/`
-- Python venv at `/Users/robbohomebot/scc-content/.venv` (has `requests`)
-- Website repo cloned at `/Users/robbohomebot/scc-content/SCC_V2/`
-- Credentials at `/Users/robbohomebot/scc-content/.env` (never commit)
+- `scc__list_competitions` - list stable IDs and metadata, optionally by season.
+- `scc__preview_competition_import` - validate an image plus CSV/RTF/XLSX import
+  without database or storage writes.
+- `scc__write_competition_import` - perform the same import idempotently after
+  preview approval.
 
-## Running the import
+News and programme tools remain available for list/create/edit/publish flows.
+They use Wagtail revisions; default to a draft unless Dan explicitly asks to
+publish.
 
-```bash
-cd /Users/robbohomebot/scc-content
-.venv/bin/python3 scripts/process_competition.py "SEASON" "COMPETITION NAME" --date YYYY-MM-DD --judge "Judge Name"
-```
+## Competition workflow
 
-Example:
-```bash
-.venv/bin/python3 scripts/process_competition.py "2024 - 2025" "DPI 1" --date 2024-10-01 --judge "Jane Smith"
-```
+1. Work on one competition folder at a time. Prefer `Images/` plus `Results/`.
+2. Match each image filename stem to the results `Title`, ignoring case and
+   repeated whitespace. Preserve original titles in filenames.
+3. Call `scc__list_competitions` for the season. If a matching page exists, put
+   its ID in `payload.competition_id`; otherwise omit the ID.
+4. Build the canonical payload with competition type, name, season, ISO date,
+   source, round where required, and lifecycle `JUDGED`. External entries also
+   require `host_club`.
+5. Send each file as `{kind, filename, content_base64}`. Text CSV/RTF results may
+   use `content_text`; images and XLSX use base64.
+6. Call preview first. Stop on errors and review all warnings and
+   `unknown_members`. Never guess an ambiguous member.
+7. After approval, call write with exactly the same payload and files.
+8. Verify the returned competition in Wagtail. Publishing is a separate human
+   decision.
 
-Add `--dry-run` to parse and validate without uploading.
+Supported images: JPG/JPEG, PNG, WebP, TIFF. Supported result formats: CSV/TSV
+(UTF-8/UTF-16), RTF and XLSX. Use XLSX rather than old binary XLS files.
 
-## Website API endpoint
+Repeated writes use `(competition, image_filename)` and do not duplicate
+entries. Failed writes roll back database changes and clean files created by
+that attempt. Preview reports images without result rows, result rows without
+images, and unmatched members.
 
-```
-POST /admin/import-agent/
-```
-Registered at Wagtail URL: `competitions/import-agent/`
+Full operator documentation lives in the SCC repository at
+`docs/competition-agent-workflow.md`.
 
-Uses existing helpers:
-- `_ensure_competition_category_page`
-- `_create_competition_entry_image`
-- `_find_member_profile_by_name`
+## Manual fallback
 
-## Competition name mapping (OneDrive folder → website)
+- **Wagtail > Upload competition** for a new competition import.
+- **Wagtail > Competition entries** for existing entry edits, image replacement,
+  bulk results, member matching and confirmed deletion.
 
-| OneDrive folder | Website competition name |
-|-----------------|--------------------------|
-| Radu Trophy | Radu Handoca - Nature |
-| 3 of a kind / Panel | Panel (3 of a Kind) |
-| DPI 1 / DPI 2 / DPI 3 | DPI 1 / DPI 2 / DPI 3 |
-| Print 1 / Print 2 / Print 3 | Print 1 / Print 2 / Print 3 |
-| Annual DPI | Annual DPI |
-| Annual Print | Annual Print |
-
-## CHANGELOG rule for SCC_V2
-
-Every commit pushed directly to main on `robinsondan87/SCC_V2` **must** include a version bump in `CHANGELOG.md` (e.g. `## 0.4.0 - YYYY-MM-DD`). The "Release Tag From CHANGELOG" workflow reads the top version and fails if it's already tagged.
-
-Always add a new `## X.Y.Z - YYYY-MM-DD` section in the same commit. Increment patch for fixes, minor for features.
-
-## Status
-
-- Website code committed and pushed to `robinsondan87/SCC_V2` main
-- Scripts tested via dry-run against 2024-2025 DPI 1 (92 entries parsed, 24 awards matched)
-- Live upload not yet tested — needs website to be redeployed with the new endpoint
-
-## Key reference
+## Source and deployment
 
 | Item | Value |
 |------|-------|
-| Scripts dir | `/Users/robbohomebot/scc-content/scripts/` |
+| Repository | `robinsondan87/SCC_V2` |
+| Local checkout | `/Users/robbohomebot/Projects/scc-content/SCC_V2` |
 | OneDrive source | `~/OneDrive/SCC/Competition/Entries/` |
-| Website repo | `robinsondan87/SCC_V2` |
-| API endpoint | `POST /admin/import-agent/` |
-| Website | staffordcameraclub.co.uk |
+| Website | `https://staffordcameraclub.co.uk` |
+| MCP service | `scc-mcp-1`, port 8765, bearer plus firewall allow-list |
+
+Every SCC release must bump the top `CHANGELOG.md` version. Merging to `main`
+creates the tag, builds the image and deploys web plus MCP through the existing
+release workflow.
+
+Related skills: `scc_contabo:svr002`, `jira:jira`, `robbohome-memory`.
