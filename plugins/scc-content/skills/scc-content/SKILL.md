@@ -53,6 +53,18 @@ entries. Failed writes roll back database changes and clean files created by
 that attempt. Preview reports images without result rows, result rows without
 images, and unmatched members.
 
+Competition images are permanent records. Never delete a Wagtail image object
+or its storage file after it has been attached to a competition, including when
+an entry, competition, season or member changes. SCC v0.7.15 protects referenced
+images at the database relationship. Internal team-battle images are owned by
+the team and intentionally have no individual member link.
+
+Audit live member links without writing:
+
+```bash
+ssh scc_contabo 'cd /opt/stacks/scc && docker compose -p scc -f docker-compose.prod.yml exec -T web python manage.py audit_competition_member_links'
+```
+
 Full operator documentation lives in the SCC repository at
 `docs/competition-agent-workflow.md`.
 
