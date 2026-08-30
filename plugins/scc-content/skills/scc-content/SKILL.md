@@ -27,6 +27,40 @@ News and programme tools remain available for list/create/edit/publish flows.
 They use Wagtail revisions; default to a draft unless Dan explicitly asks to
 publish.
 
+The announcement tools added in SCC `v0.7.42` are:
+
+- `scc__list_announcements` - list current announcements and publication state.
+- `scc__create_announcement` - create a manual announcement; defaults to draft.
+- `scc__list_announcement_email_imports` - inspect mailbox import history.
+- `scc__retry_announcement_email_import` - retry a failed import by record ID.
+
+## Announcement email workflow
+
+Purelymail mailbox `announcements@staffordcameraclub.co.uk` is polled by the
+production Compose service `announcement_mail` every 120 seconds. The password
+is stored in SOPS as `SCC_ANNOUNCEMENT_IMAP_PASSWORD`; never print it or put it
+in a command argument.
+
+Trusted senders are `pamelaannbennett3@gmail.com` and
+`robbohomebot@gmail.com`. A message is accepted only when its real `From`
+address is allow-listed and Purelymail's topmost `Authentication-Results`
+reports DKIM or DMARC passing. Accepted mail becomes an immediately published,
+members-only announcement. The site does not rebroadcast it by email. The
+sender receives a success or failure receipt.
+
+Attachments are Wagtail Documents in the login-restricted `Member announcement
+documents` collection. Signed-out `/documents/...` requests redirect to login,
+and host nginx blocks direct `/media/documents/...` access with 404. Do not
+weaken either control.
+
+Processed mail moves to `Processed`; rejected/untrusted mail moves to
+`Needs attention`; failed mail remains in INBOX for correction or MCP retry.
+Inspect the worker with:
+
+```bash
+ssh scc_contabo 'cd /opt/stacks/scc && docker compose -p scc -f docker-compose.prod.yml ps announcement_mail && docker compose -p scc -f docker-compose.prod.yml logs --tail=100 announcement_mail'
+```
+
 ## Competition workflow
 
 1. Work on one competition folder at a time. Prefer `Images/` plus `Results/`.
@@ -83,6 +117,7 @@ Full operator documentation lives in the SCC repository at
 | OneDrive source | `~/OneDrive/SCC/Competition/Entries/` |
 | Website | `https://staffordcameraclub.co.uk` |
 | MCP service | `scc-mcp-1`, port 8765, bearer plus firewall allow-list |
+| Announcement worker | `scc-announcement_mail-1`, Purelymail IMAP |
 
 Every SCC release must bump the top `CHANGELOG.md` version. Merging to `main`
 creates the tag, builds the image and deploys web plus MCP through the existing
