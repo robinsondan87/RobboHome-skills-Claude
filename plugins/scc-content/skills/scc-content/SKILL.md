@@ -34,6 +34,11 @@ The announcement tools added in SCC `v0.7.42` are:
 - `scc__list_announcement_email_imports` - inspect mailbox import history.
 - `scc__retry_announcement_email_import` - retry a failed import by record ID.
 
+The news mailbox tools added in SCC `v0.7.44` are:
+
+- `scc__list_news_email_imports` - inspect public-news mailbox import history.
+- `scc__retry_news_email_import` - retry a failed import by record ID.
+
 ## Announcement email workflow
 
 Purelymail mailbox `announcements@staffordcameraclub.co.uk` is polled by the
@@ -60,6 +65,21 @@ Inspect the worker with:
 ```bash
 ssh scc_contabo 'cd /opt/stacks/scc && docker compose -p scc -f docker-compose.prod.yml ps announcement_mail && docker compose -p scc -f docker-compose.prod.yml logs --tail=100 announcement_mail'
 ```
+
+## News email workflow
+
+SCC `v0.7.44` deployed the `news_mail` worker for
+`news@staffordcameraclub.co.uk`, but it remains disabled until the mailbox
+password is supplied and Jira `SCC-72` is completed. Do not enable it or invent
+credentials.
+
+Once activated, it applies the same sender allow-list and Purelymail
+DKIM/DMARC checks as the announcement worker. The subject becomes the public
+news title, safe email formatting becomes the body, the sender display name is
+reused as the author, and the email date becomes the post date. The first image
+is the featured image, further images form the gallery, and non-image
+attachments are public Wagtail document links. Processed, rejected, failed,
+receipt and duplicate handling match the announcement workflow.
 
 ## Competition workflow
 
@@ -118,6 +138,7 @@ Full operator documentation lives in the SCC repository at
 | Website | `https://staffordcameraclub.co.uk` |
 | MCP service | `scc-mcp-1`, port 8765, bearer plus firewall allow-list |
 | Announcement worker | `scc-announcement_mail-1`, Purelymail IMAP |
+| News worker | `scc-news_mail-1`, deployed disabled pending `SCC-72` |
 
 Every SCC release must bump the top `CHANGELOG.md` version. Merging to `main`
 creates the tag, builds the image and deploys web plus MCP through the existing
