@@ -68,18 +68,24 @@ ssh scc_contabo 'cd /opt/stacks/scc && docker compose -p scc -f docker-compose.p
 
 ## News email workflow
 
-SCC `v0.7.44` deployed the `news_mail` worker for
-`news@staffordcameraclub.co.uk`, but it remains disabled until the mailbox
-password is supplied and Jira `SCC-72` is completed. Do not enable it or invent
-credentials.
+The Purelymail mailbox `news@staffordcameraclub.co.uk` is polled by the
+production Compose service `news_mail` every 120 seconds. It was activated on
+SCC `v0.7.45`. The password is stored in SOPS as
+`SCC_NEWS_IMAP_PASSWORD`; never print it or put it in a command argument.
 
-Once activated, it applies the same sender allow-list and Purelymail
-DKIM/DMARC checks as the announcement worker. The subject becomes the public
-news title, safe email formatting becomes the body, the sender display name is
-reused as the author, and the email date becomes the post date. The first image
-is the featured image, further images form the gallery, and non-image
-attachments are public Wagtail document links. Processed, rejected, failed,
-receipt and duplicate handling match the announcement workflow.
+It uses the same trusted sender allow-list as the announcement worker and
+requires Purelymail's topmost `Authentication-Results` to report DKIM or DMARC
+passing. Purelymail-to-Purelymail local delivery may report only `auth=pass`;
+this is intentionally insufficient and must not be treated as equivalent to
+DKIM or DMARC without a deliberate security review.
+
+The subject becomes the public news title, safe email formatting becomes the
+body, the sender display name is reused as the author, and the email date
+becomes the post date. The first image is the featured image, further images
+form the gallery, and non-image attachments are public Wagtail document links.
+Accepted news is published immediately and the sender receives a receipt that
+reflects the refreshed Wagtail publication state. Processed, rejected, failed
+and duplicate handling match the announcement workflow.
 
 ## Competition workflow
 
@@ -138,7 +144,7 @@ Full operator documentation lives in the SCC repository at
 | Website | `https://staffordcameraclub.co.uk` |
 | MCP service | `scc-mcp-1`, port 8765, bearer plus firewall allow-list |
 | Announcement worker | `scc-announcement_mail-1`, Purelymail IMAP |
-| News worker | `scc-news_mail-1`, deployed disabled pending `SCC-72` |
+| News worker | `scc-news_mail-1`, active on Purelymail IMAP |
 
 Every SCC release must bump the top `CHANGELOG.md` version. Merging to `main`
 creates the tag, builds the image and deploys web plus MCP through the existing
