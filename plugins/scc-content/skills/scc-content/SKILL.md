@@ -46,12 +46,20 @@ production Compose service `announcement_mail` every 120 seconds. The password
 is stored in SOPS as `SCC_ANNOUNCEMENT_IMAP_PASSWORD`; never print it or put it
 in a command argument.
 
-Trusted senders are `pamelaannbennett3@gmail.com` and
-`robbohomebot@gmail.com`. A message is accepted only when its real `From`
-address is allow-listed and Purelymail's topmost `Authentication-Results`
-reports DKIM or DMARC passing. Accepted mail becomes an immediately published,
-members-only announcement. The site does not rebroadcast it by email. The
-sender receives a success or failure receipt.
+Trusted senders are managed in Wagtail at **Committee > Email senders**
+(`/admin/email-publishing/`). The two original senders were migrated into that
+database list. Each sender can be approved for news, announcements or both, and
+active members marked **Committee member** can be included automatically. A
+message is accepted only when its real `From` address is approved and
+Purelymail's topmost `Authentication-Results` reports DKIM or DMARC passing.
+Accepted mail becomes an immediately published, members-only announcement. The
+site does not rebroadcast it by email. The sender receives a success or failure
+receipt.
+
+`ANNOUNCEMENT_MAIL_ALLOWED_SENDERS` and `NEWS_MAIL_ALLOWED_SENDERS` remain
+deployment bootstrap/fallback settings only. Once the database allow-list has
+been initialised, change sender access through the admin page. Imported
+placeholder member addresses are never approved automatically.
 
 Attachments are Wagtail Documents in the login-restricted `Member announcement
 documents` collection. Signed-out `/documents/...` requests redirect to login,
@@ -73,11 +81,12 @@ production Compose service `news_mail` every 120 seconds. It was activated on
 SCC `v0.7.45`. The password is stored in SOPS as
 `SCC_NEWS_IMAP_PASSWORD`; never print it or put it in a command argument.
 
-It uses the same trusted sender allow-list as the announcement worker and
-requires Purelymail's topmost `Authentication-Results` to report DKIM or DMARC
-passing. Purelymail-to-Purelymail local delivery may report only `auth=pass`;
-this is intentionally insufficient and must not be treated as equivalent to
-DKIM or DMARC without a deliberate security review.
+It uses the same admin-managed sender list as the announcement worker, with a
+separate per-sender **News** permission, and requires Purelymail's topmost
+`Authentication-Results` to report DKIM or DMARC passing.
+Purelymail-to-Purelymail local delivery may report only `auth=pass`; this is
+intentionally insufficient and must not be treated as equivalent to DKIM or
+DMARC without a deliberate security review.
 
 The subject becomes the public news title, safe email formatting becomes the
 body, the sender display name is reused as the author, and the email date
