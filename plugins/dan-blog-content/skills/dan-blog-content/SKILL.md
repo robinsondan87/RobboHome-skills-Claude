@@ -9,7 +9,7 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 ## Via MCP / the MetaMCP hub (Codex `business` namespace + `productionshaped` server)
 
-Production Shaped drafting is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (`create_draft` / `update_draft` / `list_ideas` / `list_posts` / `get_post` — **drafting only, never publishes**; launched via `~/.local/bin/ps-mcp`), and the same server in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). **Prefer these tools** for creating/updating drafts; the Ideas JSON API (`POST/PATCH /api/ideas`) below is the fallback and the reference for field shapes. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
+Production Shaped is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (launched via `~/.local/bin/ps-mcp`), and the same server in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). The server currently exposes 11 tools: idea capture/update/list/detail, post list/detail, direct short log capture, and Tools & links save/list/detail/update. List calls are compact and paginated; use the matching detail tool only after choosing a record. **Prefer these tools** over raw HTTP. Essays and notes remain draft-first for Dan to publish. Log entries and lightweight tool links may go live directly only when Dan asks. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
 
 ## Brand state
 
@@ -28,25 +28,26 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 | Branch | `main` (only branch) |
 | Container on scc_contabo | `robbohome-blog` (Docker, port 3003) |
 | Data volume | `/home/robbohomebot/data/robbohome-blog/data` (SQLite admin DB) |
-| Repo | `robinsondan87/robbohome-blog` (private) |
-| Project path | `/Users/robbohomebot/Projects/openclaw-dan-blog` |
+| Repo | `robinsondan87/productionshaped` (private) |
+| Project path | `/Users/robbohomebot/Projects/productionshaped` |
 | Stack | Astro 5, Node standalone adapter, nginx-removed in v0.7.0 |
-| Deploy | Pattern A on a self-hosted GitHub Actions runner — `cat VERSION` drives the image tag, deploy step writes `.env`, runs `docker compose pull && up -d` |
+| Deploy | Pattern A on a self-hosted GitHub Actions runner — `cat VERSION` drives the image tag; deploy pulls GHCR and runs Docker Compose on the fleet host |
 
 **Cloudflare zones in use**: `productionshaped.com` (`d3a29862bd5a814c9ce1d7957df8f0aa`) — the only zone holding ingress for the blog. The `robbohome.com` zone (`93e554d66c0ed530fbd1387ce14a62a5`) is still in the account for other services but no longer carries any blog hostname.
 
-**Agent endpoint**: the OpenClaw `dan-blog-content` agent and any reflective-capture session post to `https://productionshaped.com/api/ideas` with the bearer token at `~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt`. (Repointed from the retired `blog.robbohome.com` hostname on 2026-05-20.)
+**Agent endpoint**: reflective-capture sessions post to `https://productionshaped.com/api/ideas`. The current local bearer copy is the mode-0600 file `~/.config/productionshaped/api-token`, used by `~/.local/bin/ps-mcp` and `~/.local/bin/ps-capture`. The former OpenClaw agent state token path was retired with the old agent workspace.
 
 ## Routes
 
-**Public, prerendered:**
-- `/` — home (hero bullets + Lately stream + Pinned + Projects preview)
-- `/writing` — combined chronological stream of essays + notes
+**Public:**
+- `/` — latest essay feature followed by one combined timeline
+- `/writing` — combined chronological archive of essays + notes
 - `/blog/<slug>` — individual essay
-- `/blog/tag/<tag>` — tag index
+- `/blog/tag/<tag>` — blog tag index
 - `/notes/<slug>` — individual short-form note
-- `/log`, `/projects`, `/projects/<slug>`, `/about`, `/now`, `/contact`, `/404`, `/rss.xml`, `/sitemap-index.xml`
-- `/og/default.png`, `/og/blog/<slug>.png` — OG card images (build-time)
+- `/tools` — dynamic Tools & links shelf with tag filters
+- `/log`, `/projects`, `/projects/<slug>`, `/about`, `/contact`, `/404`, `/rss.xml`, `/sitemap.xml`
+- `/og/default.png`, `/og/blog/<slug>.png` — OG card images
 
 **Permanent redirects** (set in `astro.config.mjs`):
 - `/blog` → `/writing` (the old essay index)
@@ -58,20 +59,23 @@ The 2026-05 brand-variant experiment (parallel `productionshaped` + `direction-a
 **Header nav** (5 items + theme toggle, deliberately KISS):
 
 ```
-writing · projects · about · log · now
+writing · projects · tools · about · log
 ```
 
 **SSR (require auth):**
 - `/admin/login` — password form (open)
-- `/admin/ideas` — capture + list + state transitions + inline draft editor with image drop zone + publish-to-blog/notes dialog (cookie-gated)
-- `/admin/posts` — directory of every file in `src/content/blog/` and `src/content/notes/`, pulled live via the GitHub Contents API
-- `/admin/posts/<collection>/<slug>` — edit page for an existing post: full-file textarea (frontmatter + body), image drop zone, Save (commits with if-match SHA → 409 on concurrent edits), Unpublish (toggles `draft: true`), Delete (git rm)
+- `/admin/ideas` — searchable, paginated idea inbox with generated description/tags, collapsed draft editors, image upload and publish dialog
+- `/admin/posts` — database-backed post directory for blog, notes and log
+- `/admin/posts/<collection>/<slug>` — edit Markdown + metadata, preview revisions, publish/unpublish/schedule/delete; saves are live on the next request
+- `/admin/tools` — quick tool-link capture plus searchable draft/published/archived shelf management
 - `/admin/logout` — POST clears cookie
 - `/api/health` — bearer-gated ping
-- `/api/ideas[?state=]` — list / create
+- `/api/ideas[?state=&summary=1&limit=&offset=]` — list / create; summary mode omits full drafts
 - `/api/ideas/:id` — read / patch / delete
-- `/api/ideas/:id/publish` — assemble frontmatter + draft body, commit to `src/content/<collection>/<slug>.md`, mark idea done
-- `/api/uploads` — multipart image upload, commits via the GitHub Contents API. **Accepts cookie OR bearer**. Pass either `idea_id` (draft context, assets → `src/assets/images/<id>/`) OR `post_collection` + `post_slug` (existing-post context, assets → `src/assets/images/posts/<slug>/`). Other `/api/*` routes stay bearer-only.
+- `/api/ideas/:id/publish` — create a published post row and mark the idea done
+- `/api/posts[?summary=1&limit=&offset=]` and `/api/posts/:id` — database-backed post CRUD; summary mode omits bodies
+- `/api/tool-links[?summary=1&status=&tag=&q=]` and `/api/tool-links/:id` — shelf CRUD
+- `/api/uploads` — multipart image upload to the mounted data volume. **Accepts cookie OR bearer**. Pass either `idea_id` (draft context, assets → `uploads/<id>/`) OR `post_collection` + `post_slug` (existing-post context, assets → `uploads/posts/<slug>/`). Other `/api/*` routes stay bearer-only.
 
 ### Mobile-friendly image upload
 
@@ -82,7 +86,7 @@ Both the draft editor on `/admin/ideas` and the post editor on `/admin/posts/<co
 - **Clipboard paste** → desktop screenshots/copies into the textarea
 - **Enter / Space** keypress on the focused zone — keyboard a11y
 
-Inserts `![](relativePath)` at the cursor on success (alt is empty by default — type it in afterwards).
+Inserts `![](/uploads/...)` at the cursor on success (alt is empty by default — type it in afterwards).
 
 ## Auth
 
@@ -91,15 +95,14 @@ Inserts `![](relativePath)` at the cursor on success (alt is empty by default �
 | `/admin/*` UI | `APP_PASSWORD` env var + HMAC-signed cookie (`AUTH_SECRET`) | GitHub secret on the repo; stash in 1Password |
 | `/api/*` JSON | `Authorization: Bearer $ADMIN_API_TOKEN` | GitHub secret on the repo |
 | `/api/uploads` | Cookie OR bearer (special-cased in `src/middleware.ts`) | Same as above |
-| Agent's API token | Plain text file (mode 0600) | `/Users/robbohomebot/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt` |
-| GitHub Contents API (commits from `/api/uploads`) | `BLOG_REPO_PAT` env var — fine-grained PAT, `contents:write` on `robinsondan87/robbohome-blog` only | GitHub secret on the repo (name: `BLOG_REPO_PAT`) |
+| Local API token | Plain text file (mode 0600) | `/Users/robbohomebot/.config/productionshaped/api-token` |
 
 `security.checkOrigin` is disabled in `astro.config.mjs` — the HMAC cookie does the CSRF job.
 
 ## Ideas API quick reference
 
 ```bash
-TOKEN=$(cat ~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt)
+TOKEN=$(cat ~/.config/productionshaped/api-token)
 BASE=https://productionshaped.com/api
 
 curl -sS -H "Authorization: Bearer $TOKEN" $BASE/health
@@ -113,11 +116,11 @@ curl -sS -X PATCH $BASE/ideas/<id> \
 curl -sS -X DELETE -H "Authorization: Bearer $TOKEN" $BASE/ideas/<id>
 ```
 
-**Idea shape:** `{id, title, notes, state, draft_markdown, created_at, updated_at}` where `state ∈ {idea, drafting, done, dropped}`.
+**Idea shape:** `{id, title, notes, description, tags, state, draft_markdown, published_path, published_url, created_at, updated_at}` where `state ∈ {idea, drafting, done, dropped}`. New ideas derive a description and tags when callers omit them.
 
-## OpenClaw agent: `dan-blog-content`
+## Discord / OpenClaw state
 
-Runs on Discord channel `#dan-blog` (id `1504369430438608896`) in the personal guild (`1473044168925253724`). Workspace at `~/.openclaw/workspace/agents/dan-blog-content/`. Model: `openai-codex/gpt-5.4`.
+The former `dan-blog-content` agent and `#dan-blog` channel were retired; the channel is now `#zlegacy-dan-blog` (id `1504369430438608896`). Production Shaped and LinkedIn share `#personal-presence` (id `1544240334190542868`) in guild `1473044168925253724`. A channel-scoped webhook provides outbound review links, but two-way OpenClaw conversation is not live until the personal guild bot token is renewed and the new `personal-presence` agent is bound and smoke-tested.
 
 ### Three-layer Discord agent setup (the gotcha)
 
@@ -140,15 +143,16 @@ When generating any blog copy (whether for Dan to publish or just in conversatio
 5. **British spelling, first-person, no marketing voice.** No "elevate," "leverage," "unlock," no exclamation marks, no "What do you think? Drop a comment."
 6. **Don't claim authorship of anything Dan only runs/configured.**
 
-## Content collections + frontmatter
+## Content storage + frontmatter
 
-`src/content/blog/<slug>.md`:
+Published blog, note and log content lives in SQLite. The Markdown files under `src/content/{blog,notes,log}` are only the seed snapshot used for a fresh database; they are not the live editing surface. Projects remain an Astro content collection. Tools & links live in the `tool_links` table and are managed through `/admin/tools`, `/api/tool-links`, or MCP.
+
+Seed blog metadata / live database fields:
 ```yaml
 title: ...
 description: ...
 pubDate: 2026-MM-DD
 tags: [sre-at-home, agents, homelab, home-assistant, observability, walked-back]
-heroIllustration: homelab | agent-fleet | none
 pinned: true | false
 pinnedOrder: 1
 series: <name>  # optional
@@ -156,9 +160,9 @@ seriesPart: 1
 seriesTotal: 3
 ```
 
-`src/content/notes/<slug>.md`: `title`, `pubDate`, optional `sourceUrl` + `sourceLabel` + `tags`.
-`src/content/log/<slug>.md`: `date`, `kind` (`reading|sketch|parked|note|shipped`), `title`, optional `detail` + `link`.
-`src/content/projects/<slug>.md`: `name`, `tagline`, `status`, `order`, `section`, `heroIllustration`, etc.
+Notes use `title`, `pubDate`, optional `sourceUrl` + `sourceLabel` + `tags`.
+Log entries use `date`, `kind` (`reading|sketch|parked|note|shipped`), `title`, optional `detail` + `link`.
+`src/content/projects/<slug>.md` remains file-backed with `name`, `tagline`, `status`, `order`, `section`, `stack` and `links`.
 
 ## Image placeholders in drafts
 
@@ -262,7 +266,7 @@ something Dan would say to a friend at a pub, you've got one.
 
 API (skip this section if the skill is loaded)
 - POST https://productionshaped.com/api/ideas
-- Bearer token: /Users/robbohomebot/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt
+- Bearer token: /Users/robbohomebot/.config/productionshaped/api-token
 - Headers:
     Authorization: Bearer <token>
     Content-Type: application/json
@@ -313,19 +317,20 @@ Report back
 
 | Task | How |
 |---|---|
-| Capture an idea from Discord | Post in `#dan-blog`, agent calls `POST /api/ideas` |
+| Capture an idea from Discord | Use `#personal-presence` once its two-way agent is live; until then use the Production Shaped MCP or `ps-capture` |
 | Capture from anywhere | Curl `POST $BASE/ideas` with bearer token |
 | See current inbox | https://productionshaped.com/admin/ideas or `GET /api/ideas?state=idea` |
-| Develop an idea into a draft | Ask agent in `#dan-blog`; agent PATCHes `draft_markdown` + state=drafting. Include image placeholders for every image the post needs (see *Image placeholders in drafts* above). |
+| Develop an idea into a draft | Ask in `#personal-presence` once its agent is live, or use the Production Shaped MCP now; update `draft_markdown` + state=drafting and include required image placeholders |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
-| Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads to `src/assets/images/<idea-id>/<filename>` via `POST /api/uploads`, inserts `![](relativePath)` at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment into the `![alt](...)` brackets before publishing. |
-| Publish a post | `/admin/ideas` → click "publish…" on a drafting-state idea, pick collection + frontmatter, hit Publish. One commit on `main`, Pattern A redeploys. The idea moves to Done with the live URL on the row. |
-| Edit an existing post | `/admin/posts` → click the slug → edit the file in the textarea. Save commits with sha conflict detection — concurrent local edits return 409 with a "reload" message instead of silently overwriting. |
-| Add images to a post (live or draft) | Drop or paste into the editor's drop zone. Drafts use `idea_id`; published posts use `post_collection` + `post_slug`. Assets land under the right path, markdown `![]()` reference inserted at the cursor. |
-| Unpublish a post | On the edit page, hit "Unpublish (set draft: true)". Toggles `draft:` in frontmatter; the file stays in git but stops rendering on the public site. |
-| Delete a post | On the edit page, hit "Delete (git rm)" — confirm modal, then a commit on `main` removes the file. |
-| Rotate `APP_PASSWORD` | `gh secret set APP_PASSWORD --repo robinsondan87/robbohome-blog --body '<new>'` then trigger workflow |
-| Rotate `ADMIN_API_TOKEN` | Same as above, but also update `~/.openclaw/workspace/agents/dan-blog-content/state/api-token.txt` (it's a local copy, not a SecretRef) |
+| Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads go to `uploads/<idea-id>/` on the mounted data volume via `POST /api/uploads`, and an `![](/uploads/...)` reference is inserted at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment before publishing. |
+| Publish a post | `/admin/ideas` → click "publish…" on a drafting-state idea, pick collection + metadata, hit Publish. The database row is live on the next request and the idea moves to Done with its URL. |
+| Edit an existing post | `/admin/posts` → click the slug → edit Markdown and metadata. Save writes to SQLite and records a revision; no commit or deploy is required. |
+| Add images to a post (live or draft) | Drop or paste into the editor's drop zone. Drafts use `idea_id`; published posts use `post_collection` + `post_slug`. Assets land on the mounted data volume and an `/uploads/...` Markdown reference is inserted. |
+| Unpublish a post | On the edit page, hit Unpublish. The status changes to `draft` and the public route stops returning it. |
+| Delete a post | On the edit page, confirm Delete. This removes the post row and its revisions; confirm with Dan first. |
+| Save a tool/reference link | Prefer MCP `save_tool_link` when Dan gives a URL, with a concise title, annotation and tags. It publishes by default; pass `draft: true` when review is needed. Admin fallback: `/admin/tools`. |
+| Rotate `APP_PASSWORD` | `gh secret set APP_PASSWORD --repo robinsondan87/productionshaped --body '<new>'` then trigger workflow |
+| Rotate `ADMIN_API_TOKEN` | Same as above, then update `~/.config/productionshaped/api-token` (mode 0600; local copy used by `ps-mcp` and `ps-capture`) |
 | Invalidate all admin sessions | Rotate `AUTH_SECRET` instead (HMAC cookie verification fails) |
 | Restart the gateway | `launchctl kickstart -k gui/$UID/ai.openclaw.gateway` then wait ~30–60s for both channels `connected` |
 
@@ -337,19 +342,19 @@ Report back
 - **Reading-time meta line**: `<date> · <X min read> · #tag #tag` rendered uppercase via `.meta { text-transform: uppercase }`.
 - **Drop cap**: `<article class="has-dropcap">` is applied by default in `PostLayout.astro` for every essay.
 - **`.visually-hidden`** screen-reader-only utility for pages where the masthead carries the visible page title but a semantic h1 is still wanted in the DOM (used on the home page).
-- **Illustrations**: hand-drawn pen-and-ink, single warm-amber line art on cream, New Yorker spot-illustration style. See *Image placeholders in drafts* for the prompt backbone. The original SVG schematics (`HomelabSketch`, `AgentFleet`) and the `heroIllustration` frontmatter enum are **removed** — every hero is a raster illustration in `src/assets/images/posts/<slug>/`.
+- **Illustrations**: hand-drawn pen-and-ink, single warm-amber line art on cream, New Yorker spot-illustration style. See *Image placeholders in drafts* for the prompt backbone. The original SVG schematics (`HomelabSketch`, `AgentFleet`) and the `heroIllustration` frontmatter enum are **removed**. New uploaded heroes live on the mounted data volume under `/uploads/`.
 - **Soft-edge raster filter**: `article figure img, article > p img, .note-body img` get two `var(--bg)`-coloured drop-shadow halos so dark-edged illustrations feather into the cream page, plus a faint dark elevation shadow.
 
 **Editorial masthead** (`.editorial-mast` in `Header.astro`): double rule top, centred wordmark in JetBrains Mono caps (no DR mark — that lives on the favicon only), italic-serif strapline below, monospace meta line (`VOL. 1 · <MONTH YEAR> · SHEFFIELD`), single rule below, then the 5-item nav. Home hero has no visible h1/subhead (the masthead does it) — a `.visually-hidden` h1 keeps the page semantic; the three pillar bullets lead the visible content.
 
 **Section headings** (`.editorial-mast ~ main .section-heading`): strong rule above + faint rule below, centred — the print-newspaper section-divider treatment.
 
-**Colophon footer** (`.editorial-colophon` in `Footer.astro`): typography credit, publication line (italic `Production Shaped` published by Dan Robinson from Sheffield, since 2026), link row (RSS · Contact · GitHub · LinkedIn), © line.
+**Colophon footer** (`.editorial-colophon` in `Footer.astro`): typography credit, publication line (italic `Production Shaped` published by Dan Robinson from Stafford, since 2026), link row (RSS · Contact · GitHub · LinkedIn), © line.
 
 ## What I should NOT do without Dan's say-so
 
-- Publish an idea or edit an existing post **without explicit "yes, ship it"** from Dan. The endpoints exist (`POST /api/ideas/:id/publish` and the `/admin/posts/<collection>/<slug>` save/delete flow) and the agent has a bearer token that can call them — but each is a real commit on `main` that triggers Pattern A. Wait for Dan to drive the publish/edit himself in the admin UI, unless he explicitly delegates a specific action.
-- Delete a post. Even with sha-conflict detection, a `git rm` commit is destructive — confirm in chat before doing it.
+- Publish an idea or edit an existing post **without explicit "yes, ship it"** from Dan. These actions write directly to the live database. Wait for Dan to drive publication/editing himself in the admin UI unless he explicitly delegates the action. Lightweight tool links are the exception only when Dan explicitly says to add/save the URL to the shelf.
+- Delete a post. Removing the database row and its revisions is destructive — confirm in chat before doing it.
 - Post anything to LinkedIn. That's `dan-linkedin`'s job. The blog agent hands off via a brief — Dan moves it across channels.
 - Touch the production tunnel config, the runner registration, or the Cloudflare DNS (that's `robbohome-admin` territory).
 
