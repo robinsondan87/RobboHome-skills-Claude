@@ -120,21 +120,23 @@ curl -sS -X DELETE -H "Authorization: Bearer $TOKEN" $BASE/ideas/<id>
 
 ## Discord / OpenClaw state
 
-The former `dan-blog-content` agent and `#dan-blog` channel were retired; the channel is now `#zlegacy-dan-blog` (id `1504369430438608896`). Production Shaped and LinkedIn share `#personal-presence` (id `1544240334190542868`) in guild `1473044168925253724`. A channel-scoped webhook provides outbound review links, but two-way OpenClaw conversation is not live until the personal guild bot token is renewed and the new `personal-presence` agent is bound and smoke-tested.
+The former `dan-blog-content` agent and `#dan-blog` channel were retired; the channel is now `#zlegacy-dan-blog` (id `1504369430438608896`). Production Shaped and LinkedIn share `#personal-presence` (id `1544240334190542868`) in guild `1473044168925253724`. Two-way OpenClaw conversation and outbound Discord delivery are live. The `personal-presence` agent is bound to that channel, uses `openai/gpt-5.6-sol` with medium thinking, and has both editorial MCP connections in its per-agent Codex home. Essays and notes remain draft-only until Dan publishes from the admin UI.
 
 ### Three-layer Discord agent setup (the gotcha)
 
-When wiring a new dan-* agent to a Discord channel, three config layers in `~/.openclaw/openclaw.json` need entries — `openclaw agents add` only does layer 1, `openclaw agents bind` only does layer 2:
+When wiring an agent to a Discord channel on OpenClaw 2026.8.x, three config layers in `~/.openclaw/openclaw.json` need entries. The CLI may create some of them, but validate the full path rather than treating a successful add/bind command as an end-to-end check:
 
-1. **`c.agents.list[]`** — agent identity, model `{primary, fallbacks}`, **`tools` block with `profile: "full"` + `alsoAllow: ["browser","fetch","message"]` + exec block**. Without `message` in the tools list, the agent returns empty replies.
-2. **`c.bindings[]`** — `{agentId, match: {channel: "discord", peer: {kind: "channel", id: "<channelId>"}}}`.
-3. **`c.channels.discord.guilds[<guildId>].channels[<channelId>]`** — `{requireMention: false, users: ["472730567163772928"], enabled: true}`. **This is the silent-failure layer** — without it, the discord plugin drops inbound messages before routing sees them.
+1. **`agents.entries[<agentId>]`** — agent identity, workspace, model, thinking default and tools. `personal-presence` currently uses `tools.profile: "full"` with `alsoAllow: ["message"]`; without message delivery capability, a successful agent turn can still appear silent in Discord.
+2. **`bindings[]`** — `{agentId, match: {channel: "discord", guildId: "<guildId>", peer: {kind: "channel", id: "<channelId>"}}, session: {groupScope: "per-group"}}`.
+3. **`channels.discord.guilds[<guildId>].channels[<channelId>]`** — `{requireMention: false, users: ["472730567163772928"], enabled: true}`. Without it, the Discord plugin can reject the inbound message before agent routing.
+
+The Production Shaped and LinkedIn MCPs for this agent live in `~/.openclaw/agents/personal-presence/agent/codex-home/config.toml`, not the global OpenClaw MCP list. Validate with an isolated read-only agent turn and check its terminal receipt for `productionshaped.*` tool calls.
 
 After editing: **`launchctl kickstart -k gui/$UID/ai.openclaw.gateway`** (NOT just `openclaw secrets reload` — the channel allowlist needs a real reconnect).
 
-### Voice rules pinned in SOUL.md
+### Voice rules pinned in the agent bootstrap files
 
-When generating any blog copy (whether for Dan to publish or just in conversation), respect these. They were established across several sessions and survive every session via the agent's SOUL.md:
+When generating any blog copy (whether for Dan to publish or just in conversation), respect these. They were established across several sessions and survive every session via the agent's `SOUL.md`, `AGENTS.md` and corpus-backed `USER.md`:
 
 1. **OpenClaw was NOT written by Dan** — he adopted it. Upstream is openclaw.ai. Frame as "the runtime I run my fleet on," never "the runtime I built."
 2. **3D printing / GeekyThings is a hobby in public copy** — never "side business," "side hustle," "marketplaces," "product listings," "customers," "selling." Bet365 employment terms.
@@ -317,10 +319,10 @@ Report back
 
 | Task | How |
 |---|---|
-| Capture an idea from Discord | Use `#personal-presence` once its two-way agent is live; until then use the Production Shaped MCP or `ps-capture` |
+| Capture an idea from Discord | Use `#personal-presence`; the two-way agent is live. It must deduplicate first and save only to the idea inbox. |
 | Capture from anywhere | Curl `POST $BASE/ideas` with bearer token |
 | See current inbox | https://productionshaped.com/admin/ideas or `GET /api/ideas?state=idea` |
-| Develop an idea into a draft | Ask in `#personal-presence` once its agent is live, or use the Production Shaped MCP now; update `draft_markdown` + state=drafting and include required image placeholders |
+| Develop an idea into a draft | Ask in `#personal-presence`, or use the Production Shaped MCP directly; update `draft_markdown` + state=drafting and include required image placeholders |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
 | Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads go to `uploads/<idea-id>/` on the mounted data volume via `POST /api/uploads`, and an `![](/uploads/...)` reference is inserted at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment before publishing. |
 | Publish a post | `/admin/ideas` → click "publish…" on a drafting-state idea, pick collection + metadata, hit Publish. The database row is live on the next request and the idea moves to Done with its URL. |
