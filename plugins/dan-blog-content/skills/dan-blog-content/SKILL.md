@@ -9,7 +9,7 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 ## Via MCP / the MetaMCP hub (Codex `business` namespace + `productionshaped` server)
 
-Production Shaped is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (launched via `~/.local/bin/ps-mcp`), and the same server in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). The server currently exposes 11 tools: idea capture/update/list/detail, post list/detail, direct short log capture, and Tools & links save/list/detail/update. List calls are compact and paginated; use the matching detail tool only after choosing a record. **Prefer these tools** over raw HTTP. Essays and notes remain draft-first for Dan to publish. Log entries and lightweight tool links may go live directly only when Dan asks. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
+Production Shaped is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (launched via `~/.local/bin/ps-mcp`), and the same editorial API in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). The local server currently exposes 12 tools: idea capture/update/list/detail, guarded generated-image attachment, post list/detail, direct short log capture, and Tools & links save/list/detail/update. `attach_draft_image` is intentionally a local-Mac path because a remote MetaMCP process cannot read OpenClaw's managed image file; use Personal Presence's direct stdio connection for it. List calls are compact and paginated; use the matching detail tool only after choosing a record. **Prefer these tools** over raw HTTP. Essays and notes remain draft-first for Dan to publish. Log entries and lightweight tool links may go live directly only when Dan asks. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
 
 ## Brand state
 
@@ -188,9 +188,9 @@ Rules when drafting:
 - `ALT:` is real alt text, not placeholder text. Screen readers will read it.
 - `PROMPT:` is tuned to match the newsprint aesthetic — see *Visual / editorial conventions* below for the palette/style cues.
 
-When Dan uploads the real image via the admin drop zone, **only the `![TODO ...](TODO-IMAGE-<id>)` line gets replaced** with the inserted `![<alt>](relativePath)`. The comment block stays above it — it's the receipt of how the image was generated and lets future-Dan (or a different image model) regenerate without losing context.
+When an image is uploaded via the admin drop zone or attached by Personal Presence, **only the `![TODO ...](TODO-IMAGE-<id>)` line gets replaced** with `![<alt>](relativePath)`. The comment block stays above it — it's the receipt of how the image was generated and lets future-Dan (or a different image model) regenerate without losing context.
 
-Don't generate the image yourself unless Dan asks. Hand him the prompt in the comment, leave the placeholder broken, and let him drive the image-gen tool.
+Do not generate images during capture, curation, shortlisting or a rough first draft. When Dan explicitly asks Personal Presence to prepare a substantial draft for review, it may generate the hero from the embedded brief and attach it through `attach_draft_image`. The tool accepts only OpenClaw's managed `tool-image-generation` files, checks real file content, keeps the draft state and metadata unchanged, and never publishes. Retrying identical media reuses its content-addressed path; replacing an existing attachment requires `replace_existing=true` and an explicit request from Dan.
 
 ## What NOT to put in a draft
 
@@ -324,7 +324,7 @@ Report back
 | See current inbox | https://productionshaped.com/admin/ideas or `GET /api/ideas?state=idea` |
 | Develop an idea into a draft | Ask in `#personal-presence`, or use the Production Shaped MCP directly; update `draft_markdown` + state=drafting and include required image placeholders |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
-| Add images to a draft | Open the draft in `/admin/ideas`, drop or paste the image into the editor. Uploads go to `uploads/<idea-id>/` on the mounted data volume via `POST /api/uploads`, and an `![](/uploads/...)` reference is inserted at the cursor. Replace only the `![TODO ...](TODO-IMAGE-<id>)` placeholder line; leave the comment block above as a record. Fill in `ALT:` from the comment before publishing. |
+| Add images to a draft | Manual: open `/admin/ideas`, drop or paste into the editor, replace only the matching placeholder line, and keep its comment. Automated review-ready path: `image_generate` from the embedded brief, then MCP `attach_draft_image(id, image_id, local_path)`. It fills the stored ALT, verifies the exact placeholder and remains draft-only. |
 | Publish a post | `/admin/ideas` → click "publish…" on a drafting-state idea, pick collection + metadata, hit Publish. The database row is live on the next request and the idea moves to Done with its URL. |
 | Edit an existing post | `/admin/posts` → click the slug → edit Markdown and metadata. Save writes to SQLite and records a revision; no commit or deploy is required. |
 | Add images to a post (live or draft) | Drop or paste into the editor's drop zone. Drafts use `idea_id`; published posts use `post_collection` + `post_slug`. Assets land on the mounted data volume and an `/uploads/...` Markdown reference is inserted. |
@@ -368,6 +368,18 @@ Probable causes (in order of likelihood):
 2. **Channel allowlist missing entry** — see the three-layer section above.
 3. **`tools.message` not on the agent's tools list** — agent processes the message but can't reply.
 4. **Discord WebSocket stuck in reconnect loop** — `grep "Gateway websocket closed: 1006" /tmp/openclaw/openclaw-*.log`. Fix: gateway kickstart.
+
+### Async image-generation handoff gotcha
+
+`image_generate` runs as a detached task in a chat session. Once the call says
+the task started, the requesting agent must end its turn immediately. Polling
+task status, session history or the filesystem keeps the requester turn busy;
+the completion event then cannot re-enter and eventually reports that the
+continuation did not become ready before its handoff deadline. The generated
+file is still present under `~/.openclaw/media/tool-image-generation/`, but the
+automatic attachment step is skipped. Personal Presence's `AGENTS.md` pins the
+correct sequence: start once, stop without polling, then attach from the
+completion wake.
 
 ## Related skills + memories
 
