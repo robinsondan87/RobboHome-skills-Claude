@@ -122,6 +122,8 @@ curl -sS -X DELETE -H "Authorization: Bearer $TOKEN" $BASE/ideas/<id>
 
 The former `dan-blog-content` agent and `#dan-blog` channel were retired; the channel is now `#zlegacy-dan-blog` (id `1504369430438608896`). Production Shaped and LinkedIn share `#personal-presence` (id `1544240334190542868`) in guild `1473044168925253724`. Two-way OpenClaw conversation and outbound Discord delivery are live. The `personal-presence` agent is bound to that channel, uses `openai/gpt-5.6-sol` with medium thinking, and has both editorial MCP connections in its per-agent Codex home. Essays and notes remain draft-only until Dan publishes from the admin UI.
 
+The Mac's local agents-runner also prepares review material through the direct Production Shaped MCP. `productionshaped-review` runs daily at 20:45 Europe/London and turns exactly one source-complete raw idea into a 300–500 word note draft. `productionshaped-weekly-essay` runs Sundays at 20:00 and turns exactly one source-complete raw idea into an 800–1500 word essay draft. Both use GPT-5.6 Sol at medium effort, preserve the idea's stored hero and metadata, notify `#personal-presence`, and can only move a raw idea to `drafting`; neither may publish, schedule, delete, drop, or rewrite an existing draft. On Sunday the essay runs first, then the daily note selects a different remaining raw idea at 20:45.
+
 ### Three-layer Discord agent setup (the gotcha)
 
 When wiring an agent to a Discord channel on OpenClaw 2026.8.x, three config layers in `~/.openclaw/openclaw.json` need entries. The CLI may create some of them, but validate the full path rather than treating a successful add/bind command as an end-to-end check:
@@ -323,6 +325,8 @@ Report back
 | Capture from anywhere | Curl `POST $BASE/ideas` with bearer token |
 | See current inbox | https://productionshaped.com/admin/ideas or `GET /api/ideas?state=idea` |
 | Develop an idea into a draft | Ask in `#personal-presence`, or use the Production Shaped MCP directly; update `draft_markdown` + state=drafting and include required image placeholders |
+| Daily automated note review | `~/agents-runner/jobs/productionshaped-review` runs at 20:45 and prepares one draft-only note for the admin inbox |
+| Weekly automated essay review | `~/agents-runner/jobs/productionshaped-weekly-essay` runs Sunday at 20:00 and prepares one draft-only long-form essay |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
 | Add images to an idea or draft | Embedded brief: `image_generate`, then MCP `attach_draft_image(id, image_id, local_path)`. Raw idea: generate a restrained hero concept, then `attach_idea_hero(id, local_path, alt, prompt, aspect)`. Both remain draft-only. The admin inbox previews stored heroes. |
 | Backfill unpublished heroes | From the repo, run `node scripts/backfill-idea-images.mjs` (pilot with `--limit=5`). It uses GPT-5.6 Sol through Personal Presence's saved OpenAI auth for concepts, GPT Image 2 for WebP heroes, skips already illustrated ideas, stores sidecar briefs under OpenClaw managed media and resumes safely. Add `--no-inline` only when embedded inline placeholders should be left alone. |
