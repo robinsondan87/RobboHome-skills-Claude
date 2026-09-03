@@ -9,7 +9,7 @@ A small companion reference so future-Claude knows the blog stack exists without
 
 ## Via MCP / the MetaMCP hub (Codex `business` namespace + `productionshaped` server)
 
-Production Shaped is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (launched via `~/.local/bin/ps-mcp`), and the same editorial API in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). The local server currently exposes 12 tools: idea capture/update/list/detail, guarded generated-image attachment, post list/detail, direct short log capture, and Tools & links save/list/detail/update. `attach_draft_image` is intentionally a local-Mac path because a remote MetaMCP process cannot read OpenClaw's managed image file; use Personal Presence's direct stdio connection for it. List calls are compact and paginated; use the matching detail tool only after choosing a record. **Prefer these tools** over raw HTTP. Essays and notes remain draft-first for Dan to publish. Log entries and lightweight tool links may go live directly only when Dan asks. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
+Production Shaped is available as MCP tools two ways: the **`productionshaped` stdio MCP** wired directly into Codex (launched via `~/.local/bin/ps-mcp`), and the same editorial API in the hub's **`business`** namespace (`productionshaped__*`, alongside `linkedin-admin__*`; Codex MCP server `business`, bearer `HOMELAB_MCP_KEY`). The local server currently exposes 13 tools: idea capture/update/list/detail, two guarded generated-image attachment paths, post list/detail, direct short log capture, and Tools & links save/list/detail/update. `attach_draft_image` fills an exact embedded placeholder; `attach_idea_hero` stores a hero independently on any unpublished idea, including a raw idea with no body. Both are intentionally local-Mac paths because a remote MetaMCP process cannot read OpenClaw's managed image file; use Personal Presence's direct stdio connection. List calls are compact and paginated; use the matching detail tool only after choosing a record. **Prefer these tools** over raw HTTP. Essays and notes remain draft-first for Dan to publish. Log entries and lightweight tool links may go live directly only when Dan asks. Proactive auto-capture still uses the `capture-note` skill. See the `metamcp-hub` memory.
 
 ## Brand state
 
@@ -64,7 +64,7 @@ writing · projects · tools · about · log
 
 **SSR (require auth):**
 - `/admin/login` — password form (open)
-- `/admin/ideas` — searchable, paginated idea inbox with generated description/tags, collapsed draft editors, image upload and publish dialog
+- `/admin/ideas` — searchable, paginated idea inbox with generated description/tags, independent hero previews, collapsed draft editors, image upload and publish dialog
 - `/admin/posts` — database-backed post directory for blog, notes and log
 - `/admin/posts/<collection>/<slug>` — edit Markdown + metadata, preview revisions, publish/unpublish/schedule/delete; saves are live on the next request
 - `/admin/tools` — quick tool-link capture plus searchable draft/published/archived shelf management
@@ -75,7 +75,7 @@ writing · projects · tools · about · log
 - `/api/ideas/:id/publish` — create a published post row and mark the idea done
 - `/api/posts[?summary=1&limit=&offset=]` and `/api/posts/:id` — database-backed post CRUD; summary mode omits bodies
 - `/api/tool-links[?summary=1&status=&tag=&q=]` and `/api/tool-links/:id` — shelf CRUD
-- `/api/uploads` — multipart image upload to the mounted data volume. **Accepts cookie OR bearer**. Pass either `idea_id` (draft context, assets → `uploads/<id>/`) OR `post_collection` + `post_slug` (existing-post context, assets → `uploads/posts/<slug>/`). Other `/api/*` routes stay bearer-only.
+- `/api/uploads` — multipart image upload to the mounted data volume. **Accepts cookie OR bearer**. Pass either `idea_id` (draft context, assets → `uploads/<id>/`) OR `post_collection` + `post_slug` (existing-post context, assets → `uploads/posts/<slug>/`). For a body-independent raw-idea hero, also pass `idea_hero=true`, `image_id=hero`, `alt`, `prompt` and `aspect`. Other `/api/*` routes stay bearer-only.
 
 ### Mobile-friendly image upload
 
@@ -190,7 +190,7 @@ Rules when drafting:
 
 When an image is uploaded via the admin drop zone or attached by Personal Presence, **only the `![TODO ...](TODO-IMAGE-<id>)` line gets replaced** with `![<alt>](relativePath)`. The comment block stays above it — it's the receipt of how the image was generated and lets future-Dan (or a different image model) regenerate without losing context.
 
-Do not generate images during capture, curation, shortlisting or a rough first draft. When Dan explicitly asks Personal Presence to prepare a substantial draft for review, it may generate the hero from the embedded brief and attach it through `attach_draft_image`. The tool accepts only OpenClaw's managed `tool-image-generation` files, checks real file content, keeps the draft state and metadata unchanged, and never publishes. Retrying identical media reuses its content-addressed path; replacing an existing attachment requires `replace_existing=true` and an explicit request from Dan.
+Do not generate images during capture, curation, shortlisting or a rough first draft by default. When Dan explicitly asks Personal Presence to prepare a substantial draft for review, it may generate the hero from the embedded brief and attach it through `attach_draft_image`. When Dan explicitly asks for a raw idea's image or authorises a backlog pass, use `attach_idea_hero`; it stores the hero prompt, alt and aspect without fabricating a draft body. Publication later folds that stored hero into the finished post automatically. Both tools accept only OpenClaw's managed `tool-image-generation` files, check real file content, keep the draft state and copy unchanged, and never publish. Retrying identical media reuses its content-addressed path; replacing an existing attachment requires `replace_existing=true` and an explicit request from Dan.
 
 ## What NOT to put in a draft
 
@@ -324,7 +324,8 @@ Report back
 | See current inbox | https://productionshaped.com/admin/ideas or `GET /api/ideas?state=idea` |
 | Develop an idea into a draft | Ask in `#personal-presence`, or use the Production Shaped MCP directly; update `draft_markdown` + state=drafting and include required image placeholders |
 | Read or edit a draft | Admin UI: drafting-state ideas render an inline editor with a drop zone for images. Save with the form's Save button. Non-drafting states still show the read-only `<details>` panel. Or `GET /api/ideas/:id`. |
-| Add images to a draft | Manual: open `/admin/ideas`, drop or paste into the editor, replace only the matching placeholder line, and keep its comment. Automated review-ready path: `image_generate` from the embedded brief, then MCP `attach_draft_image(id, image_id, local_path)`. It fills the stored ALT, verifies the exact placeholder and remains draft-only. |
+| Add images to an idea or draft | Embedded brief: `image_generate`, then MCP `attach_draft_image(id, image_id, local_path)`. Raw idea: generate a restrained hero concept, then `attach_idea_hero(id, local_path, alt, prompt, aspect)`. Both remain draft-only. The admin inbox previews stored heroes. |
+| Backfill unpublished heroes | From the repo, run `node scripts/backfill-idea-images.mjs` (pilot with `--limit=5`). It uses GPT-5.6 Sol through Personal Presence's saved OpenAI auth for concepts, GPT Image 2 for WebP heroes, skips already illustrated ideas, stores sidecar briefs under OpenClaw managed media and resumes safely. Add `--no-inline` only when embedded inline placeholders should be left alone. |
 | Publish a post | `/admin/ideas` → click "publish…" on a drafting-state idea, pick collection + metadata, hit Publish. The database row is live on the next request and the idea moves to Done with its URL. |
 | Edit an existing post | `/admin/posts` → click the slug → edit Markdown and metadata. Save writes to SQLite and records a revision; no commit or deploy is required. |
 | Add images to a post (live or draft) | Drop or paste into the editor's drop zone. Drafts use `idea_id`; published posts use `post_collection` + `post_slug`. Assets land on the mounted data volume and an `/uploads/...` Markdown reference is inserted. |
