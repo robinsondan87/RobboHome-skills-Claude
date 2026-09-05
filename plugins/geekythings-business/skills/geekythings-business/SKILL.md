@@ -16,12 +16,28 @@ Dan runs **GeekyThings** (geekythings.co.uk) — a 3D printing business.
 
 ## OpenClaw automation agents
 
-| Agent | Workspace | Purpose |
-|-------|-----------|---------|
-| `geekythings-content-agent` | `~/.openclaw/workspaces/geekythings-content` | Social media content creation and posting |
-| `geekythings-trends-agent` | `~/.openclaw/workspaces/geekythings-trends` | Trend research and product opportunity identification |
+The clean four-desk model was created and smoke-tested on 5 September 2026.
+Each agent uses GPT-5.6 with medium thinking, has its own Discord channel, and
+shares the `geekythings` MCP backed by Product Manager structured state.
 
-Both workspaces are created but not yet fully configured (as of April 2026).
+| Discord channel | Agent | Purpose |
+|-------|-----------|---------|
+| `#geekythings-product-manager` | `geekythings-products` | Catalogue, pricing, files, stock, production and marketplace alignment. Product writes require preview, exact approval and verification. |
+| `#geekythings-ideas` | `geekythings-ideas` | Research and the idea → shortlist → prototype → product draft → ready → live pipeline. |
+| `#geekythings-customer-service` | `geekythings-customer-service` | Private Etsy order/review reads and concise customer-reply drafts. Dan sends replies in Etsy because Open API v3 has no conversations API. |
+| `#geekythings-social` | `geekythings-social` | Exact-media social drafts, approval and internal scheduling. It does not yet publish publicly. |
+
+The old `geekythings-content-agent` and `geekythings-trends-agent` names are
+retired. Their Discord channels were retained as `zlegacy-*`; do not bind new
+agents to them. The old Upload-Post social integration must not be revived: it
+selected the wrong image at least once and did not verify live publication.
+
+The current MCP exposes catalogue, idea, customer-draft, social-draft and
+approval-gated product tools. Etsy listing, receipt and review reads are
+implemented but remain unavailable until Etsy approves the developer app and
+the one-time OAuth flow is completed. Direct social publishing is a separate
+future phase and must preserve exact media/caption/time approval plus live URL
+verification.
 
 ## Working principle: OpenClaw first
 
@@ -34,6 +50,12 @@ The GeekyThings Product Catalogue app lives at https://geekythings.robbohome.com
 - Manages product listings, files (3MF), pricing, tags, colours, sizes
 - API-driven — see `skills/geekythings-listings/SKILL.md` for workflow
 - Deploy via `skills/deploy-geekythings/SKILL.md`
+
+The scoped agent API is exposed through the local launcher
+`~/.local/bin/geekythings-mcp`. The Etsy callback is
+`https://geekythings.robbohome.com/api/etsy/oauth/callback`; connect it with
+`~/Projects/GeekyThingsProductCatalogue/scripts/connect-etsy` only after the
+API key and shared secret are stored in SOPS.
 
 ## Key contacts / accounts
 
