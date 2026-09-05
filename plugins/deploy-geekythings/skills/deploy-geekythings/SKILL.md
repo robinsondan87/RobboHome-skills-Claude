@@ -68,7 +68,33 @@ VERSION=1.x.x docker compose -f docker-compose.prod.yml up -d
 - Local runner directory: `/mnt/user/appdata/actions-runner-geekythings`; boot launcher: `/boot/config/custom/start-geekythings-runner.sh`.
 - The stopped Contabo stack under `/opt/stacks/geekythings` is an archive/rollback copy. Do not restart it during normal deployment.
 - The app joins `metamcp_metamcp-network`; MetaMCP reaches it privately as `http://geekythings-app:8555/api/agent`.
-- The `geekythings` MetaMCP endpoint exposes the Product Manager tools. Etsy remains unconfigured until the pending personal app is approved.
+- The `geekythings` MetaMCP endpoint exposes the Product Manager tools. Etsy production access is connected read-only; see the runtime notes below before re-authorising it.
+
+## Etsy OAuth runtime on MetaMCP
+
+The Etsy MCP is a MetaMCP stdio child on `svr001`. Running
+`scripts/connect-etsy` on the Mac creates a valid local token, but the shared
+agents cannot use that file until it is deployed beside the process that
+consumes it.
+
+1. Complete OAuth on the Mac with `scripts/connect-etsy`. Keep the scopes at
+   `shops_r listings_r transactions_r`.
+2. Copy `~/.config/geekythings/etsy-oauth.json` to
+   `/mnt/user/appdata/mcp-servers/GeekyThingsProductCatalogue/.runtime/etsy-oauth.json`
+   on `svr001`.
+3. The host directory must be mode `700`, the file mode `600`, and both must be
+   owned by the uid/gid returned by `docker exec metamcp id`.
+4. In MetaMCP's `geekythings` server environment, keep
+   `ETSY_TOKEN_FILE=/srv/mcp-servers/GeekyThingsProductCatalogue/.runtime/etsy-oauth.json`
+   and inject `ETSY_API_KEY` plus `ETSY_SHARED_SECRET` from SOPS.
+5. Restart MetaMCP to recreate its stdio children, then verify through the
+   themed `geekythings` MCP endpoint with `etsy_status`, one listing, one order
+   and one review read. Do not treat the local OAuth helper alone as proof that
+   the Discord agents are connected.
+
+The API key and shared secret are mirrored in the restricted Vaultwarden
+Automation collection for human recovery. SOPS remains the runtime source of
+truth. The rotating OAuth token file is runtime state and must not be committed.
 
 ---
 
@@ -111,4 +137,5 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOU
 ## Notes
 - Data volumes under `/mnt/user/appdata/geekythings-prod/data/` are never replaced by deploys.
 - Auth: username/password auth enabled via AUTH_USERNAME/AUTH_PASSWORD env vars
+- Rerunning an old GitHub Actions run can retain its original secret context. After rotating a deployment secret, create a fresh patch tag and verify the live container's credential fingerprint rather than trusting a green rerun.
 - See `skills/bambu-integration/SKILL.md` before attempting any Bambu Studio integration
