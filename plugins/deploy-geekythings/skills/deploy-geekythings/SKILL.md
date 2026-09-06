@@ -68,7 +68,7 @@ VERSION=1.x.x docker compose -f docker-compose.prod.yml up -d
 - Local runner directory: `/mnt/user/appdata/actions-runner-geekythings`; boot launcher: `/boot/config/custom/start-geekythings-runner.sh`.
 - The stopped Contabo stack under `/opt/stacks/geekythings` is an archive/rollback copy. Do not restart it during normal deployment.
 - The app joins `metamcp_metamcp-network`; MetaMCP reaches it privately as `http://geekythings-app:8555/api/agent`.
-- The `geekythings` MetaMCP endpoint exposes the Product Manager tools. Etsy production access is connected read-only; see the runtime notes below before re-authorising it.
+- The `geekythings` MetaMCP endpoint exposes the Product Manager tools. Tagged releases also sync `mcp/` into the persistent MetaMCP source directory, install its production dependencies and restart MetaMCP. The `.runtime` credentials directory is outside that sync and remains preserved.
 
 ## Etsy OAuth runtime on MetaMCP
 
@@ -77,8 +77,9 @@ The Etsy MCP is a MetaMCP stdio child on `svr001`. Running
 agents cannot use that file until it is deployed beside the process that
 consumes it.
 
-1. Complete OAuth on the Mac with `scripts/connect-etsy`. Keep the scopes at
-   `shops_r listings_r transactions_r`.
+1. Complete OAuth on the Mac with `scripts/connect-etsy`. The connector requests
+   `shops_r listings_r listings_w transactions_r`; `listings_w` is used only by
+   the exact-approval inventory price tools.
 2. Copy `~/.config/geekythings/etsy-oauth.json` to
    `/mnt/user/appdata/mcp-servers/GeekyThingsProductCatalogue/.runtime/etsy-oauth.json`
    on `svr001`.
@@ -89,8 +90,10 @@ consumes it.
    and inject `ETSY_API_KEY` plus `ETSY_SHARED_SECRET` from SOPS.
 5. Restart MetaMCP to recreate its stdio children, then verify through the
    themed `geekythings` MCP endpoint with `etsy_status`, one listing, one order
-   and one review read. Do not treat the local OAuth helper alone as proof that
-   the Discord agents are connected.
+   and one review read. Confirm `etsy_status.granted_scopes` contains
+   `listings_w` and that both `preview_etsy_stand_price_update` and
+   `apply_approved_etsy_stand_price_update` are advertised. Do not treat the
+   local OAuth helper alone as proof that the Discord agents are connected.
 
 The API key and shared secret are mirrored in the restricted Vaultwarden
 Automation collection for human recovery. SOPS remains the runtime source of

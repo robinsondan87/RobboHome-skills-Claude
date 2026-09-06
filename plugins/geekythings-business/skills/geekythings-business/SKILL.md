@@ -60,6 +60,13 @@ as a MetaMCP stdio child on `svr001`. The Etsy callback is
 API key and shared secret are stored in SOPS, then deploy the resulting token
 file to the `svr001` MetaMCP runtime path described in the deploy skill.
 
+Etsy inventory prices may be changed only through the dedicated MCP approval
+flow. Preview first, show Dan the listing title, current and proposed Stand
+prices and affected variant count, then wait for the exact `APPROVE ETSY ...`
+phrase. Apply refuses stale inventory, preserves all non-price variant fields,
+is idempotent, and verifies the final inventory from Etsy. The connector needs
+`listings_w`; general agreement is never sufficient approval for a live write.
+
 ## Key contacts / accounts
 
 - Etsy shop: GeekyThingsUK
