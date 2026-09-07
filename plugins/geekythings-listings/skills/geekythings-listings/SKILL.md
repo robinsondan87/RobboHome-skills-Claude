@@ -35,6 +35,10 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      phrase from that preview in the current chat.
    - Treat success only as a fresh Etsy inventory read matching the approved
      hash. The apply tool refuses stale previews and is idempotent.
+   - Etsy may require `sku_on_property` to name every variation property when
+     price or quantity also varies across all of them. The tool handles this
+     automatically while allowing the same canonical SKU to repeat across
+     colour combinations; do not reduce it to only the mapping property.
 
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
