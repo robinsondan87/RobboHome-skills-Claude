@@ -35,10 +35,13 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      phrase from that preview in the current chat.
    - Treat success only as a fresh Etsy inventory read matching the approved
      hash. The apply tool refuses stale previews and is idempotent.
-   - Etsy may require `sku_on_property` to name every variation property when
-     price or quantity also varies across all of them. The tool handles this
-     automatically while allowing the same canonical SKU to repeat across
-     colour combinations; do not reduce it to only the mapping property.
+   - Etsy requires compatible `*_on_property` sets. If existing price or
+     quantity variation spans every property, a SKU-only update may also need
+     every property. To make price and SKU vary only by the mapping property,
+     use `normalise_variation_settings=true` with an explicit `global_quantity`;
+     the same approved payload then sets price/SKU to the mapping property and
+     turns quantity/processing-profile variation off. Replay those setting and
+     quantity changes explicitly because they are not SKU-only.
 
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
