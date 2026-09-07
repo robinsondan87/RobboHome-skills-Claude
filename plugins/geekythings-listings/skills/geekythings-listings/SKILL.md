@@ -61,6 +61,26 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      id/name/value, SKU, price, quantity and enabled state, not `value_ids`.
      Otherwise a successful multi-variant write is falsely reported as failed.
 
+5. To create a new Etsy listing from a catalogue product, use the approval-gated
+   private-draft workflow.
+   - Call `preview_etsy_listing_draft` with the Product Manager product id and
+     the complete proposed title, description, price, taxonomy, shipping and
+     processing profile, tags, materials, colours, and exact image filenames.
+   - Replay the exact `SKU - Product title`, public title and description,
+     price, shared quantity, colour choices, tags, materials, and image list.
+   - Call `apply_approved_etsy_listing_draft` only after Dan supplies the exact
+     `APPROVE ETSY DRAFT ...` phrase from that preview in the current chat.
+   - This flow creates a private Etsy draft and uploads only the SHA-bound
+     approved Product Manager images. It never publishes the listing.
+   - The write is resumable and idempotent. Treat success only as a fresh Etsy
+     read verifying draft state, ownership/copy, images, fixed canonical SKU,
+     shared quantity 20, and the approved inventory structure.
+   - After verification it links the Etsy URL and price back to Product Manager
+     and sets `Completed: No`, placing the touched product in Catalogue Review.
+   - For colour choices, price and SKU do not vary by colour unless the preview
+     explicitly captures a genuine existing price exception. Quantity never
+     varies; the default shared quantity is 20.
+
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
 - Keep README as `README.md` under Draft/Live/Archived paths; the DB does not store README content unless passed to `/api/product_meta`.
