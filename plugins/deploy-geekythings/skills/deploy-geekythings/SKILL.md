@@ -92,10 +92,13 @@ consumes it.
    themed `geekythings` MCP endpoint with `etsy_status`, one listing, one order
    and one review read. Confirm `etsy_status.granted_scopes` contains
    `listings_w` and that the preview/apply pairs for both Etsy stand-price and
-   SKU updates are advertised. SKU previews take Product Manager ids, resolve
-   the canonical `SKU - Product title` pairs themselves, and map one complete
-   Etsy variation property. Do not treat the local OAuth helper alone as proof
-   that the Discord agents are connected.
+   SKU updates are advertised. Use `preview_etsy_fixed_sku_update` when all
+   variants share one catalogue product; it removes false SKU/quantity
+   variation, defaults shared stock to 20 and derives the smallest set of real
+   price dimensions. Use `preview_etsy_sku_update` when variation values map to
+   different catalogue products. Both resolve canonical `SKU - Product title`
+   pairs themselves. Do not treat the local OAuth helper alone as proof that
+   the Discord agents are connected.
 
 The API key and shared secret are mirrored in the restricted Vaultwarden
 Automation collection for human recovery. SOPS remains the runtime source of

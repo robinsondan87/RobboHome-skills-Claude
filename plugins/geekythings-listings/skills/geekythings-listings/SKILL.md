@@ -28,8 +28,14 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - Live → Draft: `POST /api/move_to_draft`
 
 4. For live Etsy variant SKUs, use the GeekyThings MCP approval boundary.
+   - When every Etsy variant belongs to one catalogue product, call
+     `preview_etsy_fixed_sku_update`. It assigns the same canonical SKU to all
+     variants, turns SKU and quantity variation off, sets shared quantity to
+     20, and keeps only variation properties that genuinely explain different
+     prices. It also supports listings with no variations.
    - Call `preview_etsy_sku_update` with the listing id, one complete Etsy
-     variation property, and Product Manager product ids for every value.
+     variation property, and Product Manager product ids for every value only
+     when one Etsy listing genuinely represents multiple catalogue products.
    - Replay every resolved `SKU - Product title` mapping and the affected count.
    - Call `apply_approved_etsy_sku_update` only after Dan supplies the exact
      phrase from that preview in the current chat.
