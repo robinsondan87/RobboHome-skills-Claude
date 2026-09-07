@@ -56,6 +56,10 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - Etsy requires every retained `*_on_property` id to stay in the same order
      used by the inventory products. Never sort property ids numerically when
      constructing an inventory update; preserve Etsy's API order.
+   - Etsy can regenerate internal variation `value_ids` after accepting an
+     inventory PUT. Verification hashes must use the customer-visible property
+     id/name/value, SKU, price, quantity and enabled state, not `value_ids`.
+     Otherwise a successful multi-variant write is falsely reported as failed.
 
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
