@@ -53,6 +53,9 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      have the same price. The tool detects and preserves genuine existing
      colour exceptions such as a cheaper `Random` option and includes them in
      the approval preview.
+   - Etsy requires every retained `*_on_property` id to stay in the same order
+     used by the inventory products. Never sort property ids numerically when
+     constructing an inventory update; preserve Etsy's API order.
 
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
