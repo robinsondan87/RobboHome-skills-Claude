@@ -38,10 +38,15 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - Etsy requires compatible `*_on_property` sets. If existing price or
      quantity variation spans every property, a SKU-only update may also need
      every property. To make price and SKU vary only by the mapping property,
-     use `normalise_variation_settings=true` with an explicit `global_quantity`;
-     the same approved payload then sets price/SKU to the mapping property and
+     use `normalise_variation_settings=true`; `global_quantity` defaults to 20.
+     The same approved payload then sets price/SKU to the mapping property and
      turns quantity/processing-profile variation off. Replay those setting and
      quantity changes explicitly because they are not SKU-only.
+   - Quantity must never vary for print-on-demand products. Use one shared
+     quantity, normally 20. Do not make price vary by colour when all colours
+     have the same price. The tool detects and preserves genuine existing
+     colour exceptions such as a cheaper `Random` option and includes them in
+     the approval preview.
 
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
