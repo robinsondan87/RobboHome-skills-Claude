@@ -27,6 +27,15 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - Live → Archive: `POST /api/archive`
    - Live → Draft: `POST /api/move_to_draft`
 
+4. For live Etsy variant SKUs, use the GeekyThings MCP approval boundary.
+   - Call `preview_etsy_sku_update` with the listing id, one complete Etsy
+     variation property, and Product Manager product ids for every value.
+   - Replay every resolved `SKU - Product title` mapping and the affected count.
+   - Call `apply_approved_etsy_sku_update` only after Dan supplies the exact
+     phrase from that preview in the current chat.
+   - Treat success only as a fresh Etsy inventory read matching the approved
+     hash. The apply tool refuses stale previews and is idempotent.
+
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
 - Keep README as `README.md` under Draft/Live/Archived paths; the DB does not store README content unless passed to `/api/product_meta`.

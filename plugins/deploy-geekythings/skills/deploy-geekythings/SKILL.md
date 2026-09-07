@@ -79,7 +79,7 @@ consumes it.
 
 1. Complete OAuth on the Mac with `scripts/connect-etsy`. The connector requests
    `shops_r listings_r listings_w transactions_r`; `listings_w` is used only by
-   the exact-approval inventory price tools.
+   the exact-approval inventory price and SKU tools.
 2. Copy `~/.config/geekythings/etsy-oauth.json` to
    `/mnt/user/appdata/mcp-servers/GeekyThingsProductCatalogue/.runtime/etsy-oauth.json`
    on `svr001`.
@@ -91,9 +91,11 @@ consumes it.
 5. Restart MetaMCP to recreate its stdio children, then verify through the
    themed `geekythings` MCP endpoint with `etsy_status`, one listing, one order
    and one review read. Confirm `etsy_status.granted_scopes` contains
-   `listings_w` and that both `preview_etsy_stand_price_update` and
-   `apply_approved_etsy_stand_price_update` are advertised. Do not treat the
-   local OAuth helper alone as proof that the Discord agents are connected.
+   `listings_w` and that the preview/apply pairs for both Etsy stand-price and
+   SKU updates are advertised. SKU previews take Product Manager ids, resolve
+   the canonical `SKU - Product title` pairs themselves, and map one complete
+   Etsy variation property. Do not treat the local OAuth helper alone as proof
+   that the Discord agents are connected.
 
 The API key and shared secret are mirrored in the restricted Vaultwarden
 Automation collection for human recovery. SOPS remains the runtime source of
