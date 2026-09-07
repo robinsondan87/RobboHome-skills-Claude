@@ -78,8 +78,32 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - After verification it links the Etsy URL and price back to Product Manager
      and sets `Completed: No`, placing the touched product in Catalogue Review.
    - For colour choices, price and SKU do not vary by colour unless the preview
-     explicitly captures a genuine existing price exception. Quantity never
-     varies; the default shared quantity is 20.
+   explicitly captures a genuine existing price exception. Quantity never
+   varies; the default shared quantity is 20.
+
+6. For live eBay SKU and stock corrections, use the separate approval-gated
+   eBay workflow.
+   - Call `preview_ebay_sku_update` with the exact eBay listing id, Product
+     Manager product id, and available quantity (normally 20). It never writes.
+   - Replay the resolved `SKU - Product title`, listing title/id, current and
+     proposed SKU values, prices, sold counts, and available quantities.
+   - For a fixed-price listing, use the canonical Product Manager SKU. For a
+     multi-variation listing, every variation SKU must be unique: use the
+     canonical SKU as a prefix plus deterministic variation values and a short
+     collision-safe suffix.
+   - eBay exposes lifetime total quantity on reads but accepts available stock
+     on revisions. Set 20 available per active listing or variation for
+     print-on-demand products and verify using total minus sold.
+   - Call `apply_approved_ebay_sku_update` only after Dan supplies the exact
+     `APPROVE EBAY INVENTORY ...` phrase from that preview in the current chat.
+     The tool refuses stale previews, is idempotent, re-reads eBay, links a
+     blank catalogue eBay URL, records any variant SKU aliases, and sets
+     `Completed: No` for Catalogue Review.
+   - Retiring a duplicate listing is a separate destructive boundary. First
+     call `preview_ebay_end_listing`, replay the exact listing and sales data,
+     and call `apply_approved_ebay_end_listing` only after Dan supplies its
+     exact `APPROVE EBAY END ...` phrase. Never infer retirement approval from
+     an inventory approval.
 
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
