@@ -116,6 +116,10 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
   eBay's `VerifyAddFixedPriceItem` call. This catches category-specific required
   fields and invalid values without creating a listing. Never ask Dan to approve
   a locally validated payload that eBay has not accepted in verification.
+- Before creating an eBay preview, resolve the catalogue product's existing
+  `Ebay URL` and read that listing from eBay. If it is active, update it instead;
+  never create a second listing merely because a marketplace comparison failed
+  to recognise the existing mapping.
 - Match the Etsy listing's UK postage when creating an eBay listing. Use the
   listing-level £1.59/£0.49 override only where Etsy charges it; retain free
   postage when Etsy is free.
