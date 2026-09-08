@@ -112,6 +112,10 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
   as `Colour` in its item specifics. eBay rejects that shape. Keep choice
   properties in variations and shared attributes, including finished dimensions,
   in item specifics. The preview must refuse duplicates before approval.
+- Before issuing an `APPROVE EBAY LISTING ...` phrase, the preview must pass
+  eBay's `VerifyAddFixedPriceItem` call. This catches category-specific required
+  fields and invalid values without creating a listing. Never ask Dan to approve
+  a locally validated payload that eBay has not accepted in verification.
 - Match the Etsy listing's UK postage when creating an eBay listing. Use the
   listing-level £1.59/£0.49 override only where Etsy charges it; retain free
   postage when Etsy is free.
