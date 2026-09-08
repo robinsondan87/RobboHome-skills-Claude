@@ -108,6 +108,13 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
 ## Conventions to keep
 - Keep product folders as `SKU - Product Title`; UI strips the SKU for display, but backend paths require the full folder name.
 - Keep README as `README.md` under Draft/Live/Archived paths; the DB does not store README content unless passed to `/api/product_meta`.
+- For a new multi-variation eBay listing, do not repeat a variation property such
+  as `Colour` in its item specifics. eBay rejects that shape. Keep choice
+  properties in variations and shared attributes, including finished dimensions,
+  in item specifics. The preview must refuse duplicates before approval.
+- Match the Etsy listing's UK postage when creating an eBay listing. Use the
+  listing-level £1.59/£0.49 override only where Etsy charges it; retain free
+  postage when Etsy is free.
 
 ## References (in GeekyThings project directory)
 - `references/api.md` — full endpoint payloads and examples
