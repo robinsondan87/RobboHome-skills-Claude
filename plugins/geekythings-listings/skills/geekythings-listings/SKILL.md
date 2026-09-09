@@ -112,6 +112,11 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
   as `Colour` in its item specifics. eBay rejects that shape. Keep choice
   properties in variations and shared attributes, including finished dimensions,
   in item specifics. The preview must refuse duplicates before approval.
+- A seller SKU and an EAN are different fields. When an eBay category requires a
+  product identifier for a genuinely unbarcoded handmade item, set the exact EAN
+  fallback `Does not apply` on every variation. Never invent an EAN or use the
+  fallback when a manufacturer identifier exists. Keep the canonical Product
+  Manager SKU as the basis of each unique deterministic variation SKU.
 - Before issuing an `APPROVE EBAY LISTING ...` phrase, the preview must pass
   eBay's `VerifyAddFixedPriceItem` call. This catches category-specific required
   fields and invalid values without creating a listing. Never ask Dan to approve
