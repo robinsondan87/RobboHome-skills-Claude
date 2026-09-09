@@ -105,6 +105,9 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    eBay workflow.
    - Call `preview_ebay_sku_update` with the exact eBay listing id, Product
      Manager product id, and available quantity (normally 20). It never writes.
+     For a fixed-price listing it may also include one exact `price`, allowing
+     Etsy price parity and stock restoration in the same approval. A single
+     replacement price is forbidden for multi-variation listings.
    - Replay the resolved `SKU - Product title`, listing title/id, current and
      proposed SKU values, prices, sold counts, and available quantities.
    - For a fixed-price listing, use the canonical Product Manager SKU. For a
@@ -114,7 +117,8 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - eBay exposes lifetime total quantity on reads but accepts available stock
      on revisions. Set 20 available per active listing or variation for
      print-on-demand products and verify using total minus sold.
-   - Call `apply_approved_ebay_sku_update` only after Dan supplies the exact
+   - Call `apply_approved_ebay_sku_update` only after replaying the current and
+     proposed price whenever price is included, and Dan supplies the exact
      `APPROVE EBAY INVENTORY ...` phrase from that preview in the current chat.
      The tool refuses stale previews, is idempotent, re-reads eBay, links a
      blank catalogue eBay URL, records any variant SKU aliases, and sets
