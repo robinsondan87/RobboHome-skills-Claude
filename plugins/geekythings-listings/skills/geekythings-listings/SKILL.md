@@ -117,9 +117,13 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
   fields and invalid values without creating a listing. Never ask Dan to approve
   a locally validated payload that eBay has not accepted in verification.
 - Before creating an eBay preview, resolve the catalogue product's existing
-  `Ebay URL` and read that listing from eBay. If it is active, update it instead;
-  never create a second listing merely because a marketplace comparison failed
-  to recognise the existing mapping.
+  structured `marketplace_listings` and `marketplace_exclusions`. If an active
+  listing exists, update it instead; never create a second listing merely
+  because a marketplace comparison failed to recognise the existing mapping.
+  If eBay is excluded, omit the product from parity gaps and do not create a
+  preview unless Dan first explicitly removes the exclusion. Use
+  `set_marketplace_exclusion` for reversible catalogue exclusions; the reason
+  is visible on the product page and setting one cancels pending create previews.
 - Match the Etsy listing's UK postage when creating an eBay listing. Use the
   listing-level £1.59/£0.49 override only where Etsy charges it; retain free
   postage when Etsy is free.
