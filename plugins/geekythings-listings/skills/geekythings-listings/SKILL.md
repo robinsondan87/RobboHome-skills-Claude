@@ -125,6 +125,10 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - eBay exposes lifetime total quantity on reads but accepts available stock
      on revisions. Set 20 available per active listing or variation for
      print-on-demand products and verify using total minus sold.
+   - When lowering a fixed Buy It Now price, legacy Best Offer auto-accept or
+     auto-decline thresholds can make eBay reject the revision. Price-changing
+     revisions explicitly delete those two optional thresholds while leaving
+     Best Offer itself enabled, then perform the normal fresh verification.
    - Call `apply_approved_ebay_sku_update` only after replaying the current and
      proposed price whenever price is included, and Dan supplies the exact
      `APPROVE EBAY INVENTORY ...` phrase from that preview in the current chat.
