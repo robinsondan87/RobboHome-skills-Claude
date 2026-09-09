@@ -21,6 +21,11 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - Tags/colours/sizes/readme: `POST /api/product_meta` (preferred) or `POST /api/readme` for README-only edits
    - Pricing: `POST /api/pricing`
    - Media/3MF: `POST /api/upload`, then use `/api/rename_file` or `/api/delete_file` as needed
+   - Agent-driven pricing changes use `preview_product_pricing_update` with the
+     complete base and size-pricing object. Replay every size, cost, sale price
+     and postage value, then use `apply_approved_action` only after Dan supplies
+     the exact `APPROVE PRODUCT PRICING ...` phrase. The write refuses stale
+     pricing, is atomic, verifies the saved values and sets `Completed: No`.
 
 3. Move the product state if required.
    - Draft → Live: `POST /api/approve`
@@ -78,8 +83,23 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - After verification it links the Etsy URL and price back to Product Manager
      and sets `Completed: No`, placing the touched product in Catalogue Review.
    - For colour choices, price and SKU do not vary by colour unless the preview
-   explicitly captures a genuine existing price exception. Quantity never
-   varies; the default shared quantity is 20.
+     explicitly captures a genuine existing price exception. Quantity never
+     varies; the default shared quantity is 20.
+
+5a. To update customer-facing copy on an existing live Etsy listing, use the
+    approval-gated copy workflow.
+   - Call `preview_etsy_listing_copy_update` with the listing id and any proposed
+     title, description or complete tag list. Replay the exact complete current
+     and proposed title, description and tags.
+   - Customer-facing copy uses “designed and made in the UK” and must not mention
+     3D printing. Remove legacy `3d printed` tags at the same time.
+   - Call `apply_approved_etsy_listing_copy_update` only after Dan supplies the
+     exact `APPROVE ETSY COPY ...` phrase in the current chat.
+   - The approval is bound to hashes of all three copy fields. The apply refuses
+     stale copy, is idempotent, re-reads Etsy for exact verification and returns
+     the linked catalogue product to Catalogue Review.
+   - This boundary cannot change price, inventory, variations, images, shipping
+     or processing.
 
 6. For live eBay SKU and stock corrections, use the separate approval-gated
    eBay workflow.
