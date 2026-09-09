@@ -26,6 +26,14 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      and postage value, then use `apply_approved_action` only after Dan supplies
      the exact `APPROVE PRODUCT PRICING ...` phrase. The write refuses stale
      pricing, is atomic, verifies the saved values and sets `Completed: No`.
+   - Catalogue-name corrections use `preview_product_rename` with the product id
+     and title without its SKU prefix. Replay the exact old and new folder names,
+     then use `apply_approved_action` only after Dan supplies the exact
+     `APPROVE PRODUCT RENAME ...` phrase. The guarded rename preserves the SKU,
+     live/draft state, files, pricing and marketplace links; updates the README
+     heading and linked catalogue labels; and sets `Completed: No`.
+   - A Product Manager rename never changes the customer-facing marketplace
+     titles or descriptions.
 
 3. Move the product state if required.
    - Draft → Live: `POST /api/approve`
