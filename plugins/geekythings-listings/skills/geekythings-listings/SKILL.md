@@ -39,6 +39,17 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
    - Draft → Live: `POST /api/approve`
    - Live → Archive: `POST /api/archive`
    - Live → Draft: `POST /api/move_to_draft`
+   - Draft → Personal / non-business: `POST /api/move_to_personal`
+   - Personal or Archived → Draft: `POST /api/move_to_draft`
+   - Personal is a lifecycle status, not a product category. Its files live at
+     `Products/Categories/_Personal/<Category>/...`, preserving the original
+     category and SKU while excluding the product from marketplace parity and
+     the default Catalogue Review.
+   - The Personal move refuses any product with an active structured
+     marketplace listing. End or remove the marketplace listing first; never
+     hide an actively sold product by classifying it as personal.
+   - During Draft review, use the built-in Move to Personal or Archive actions;
+     a successful classification advances directly to the next Draft item.
 
 4. For live Etsy variant SKUs, use the GeekyThings MCP approval boundary.
    - When every Etsy variant belongs to one catalogue product, call
@@ -175,6 +186,11 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
   folders. Replay the full count and warning, then wait for the exact
   `APPROVE PRODUCT DRAFT ...` phrase before applying it. This changes Product
   Manager folders/status only and never Etsy or eBay.
+- Approval previews are immutable snapshots, not background jobs. A pending
+  preview cannot execute without its exact phrase. After reviewing old
+  previews, mark superseded, abandoned and expired records Cancelled rather
+  than deleting them so the audit history remains intact. Never reuse a stale
+  marketplace preview; create a fresh hash-bound preview instead.
 - Match the Etsy listing's UK postage when creating an eBay listing. Use the
   listing-level £1.59/£0.49 override only where Etsy charges it; retain free
   postage when Etsy is free.
