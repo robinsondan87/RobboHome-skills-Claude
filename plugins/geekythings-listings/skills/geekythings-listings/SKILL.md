@@ -165,6 +165,16 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
   preview unless Dan first explicitly removes the exclusion. Use
   `set_marketplace_exclusion` for reversible catalogue exclusions; the reason
   is visible on the product page and setting one cancels pending create previews.
+- Marketplace links are many-to-many. One catalogue product may have several
+  listings, and one shared Etsy listing may represent several catalogue products
+  through its variants. Persist the structured link for every resolved product;
+  never move a shared listing from one product to another.
+- To clean catalogue state after a parity audit, use
+  `preview_unlisted_products_move_to_draft`. It snapshots every currently Live
+  product without an active structured marketplace link and preflights all
+  folders. Replay the full count and warning, then wait for the exact
+  `APPROVE PRODUCT DRAFT ...` phrase before applying it. This changes Product
+  Manager folders/status only and never Etsy or eBay.
 - Match the Etsy listing's UK postage when creating an eBay listing. Use the
   listing-level £1.59/£0.49 override only where Etsy charges it; retain free
   postage when Etsy is free.
