@@ -34,6 +34,13 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      heading and linked catalogue labels; and sets `Completed: No`.
    - A Product Manager rename never changes the customer-facing marketplace
      titles or descriptions.
+   - To fill an empty catalogue media folder from an already linked Etsy
+     listing, call `backfill_product_media_from_etsy`. It imports at most ten
+     full-size images in Etsy rank order, never alters the marketplace, refuses
+     Archived products and refuses to overwrite or append when the product
+     already has images. A successful import verifies every stored image and
+     sets `Completed: No` for Dan's Catalogue Review. If several active Etsy
+     listings are linked, supply the exact listing id; never choose by title.
 
 3. Move the product state if required.
    - Draft → Live: `POST /api/approve`
