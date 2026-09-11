@@ -70,7 +70,8 @@ is idempotent, and verifies the final inventory from Etsy. The connector needs
 ## Key contacts / accounts
 
 - Etsy shop: GeekyThingsUK
-- Primary email: 3dlabzuk@gmail.com
+- Primary business email: admin@geekythings.co.uk
+- Do not use the former `3dlabzuk@gmail.com` address for new GeekyThings accounts, applications, listings or contact details.
 - GitHub: robinsondan87
 
 ## Related skills
