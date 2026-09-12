@@ -41,6 +41,12 @@ All API calls go to https://geekythings.robbohome.com (Cloudflare Zero Trust pro
      already has images. A successful import verifies every stored image and
      sets `Completed: No` for Dan's Catalogue Review. If several active Etsy
      listings are linked, supply the exact listing id; never choose by title.
+   - For a product still missing media after checking Etsy, call
+     `backfill_product_media_from_ebay`. It follows the same empty-folder-only,
+     hash-verified and Catalogue Review rules, importing at most twelve images
+     from one exact active structured eBay link. Etsy remains the first source;
+     eBay is only the fallback. The Catalogue health menu's **No photos** filter
+     is the authoritative remaining-work queue.
 
 3. Move the product state if required.
    - Draft → Live: `POST /api/approve`
